@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+node_modules/
+*.db
+data/japan_car_market.db
+data/cleaned_*.csv

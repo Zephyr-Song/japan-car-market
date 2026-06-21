@@ -1,0 +1,6 @@
+playwright
+pandas
+plotly
+matplotlib
+streamlit
+prophet
