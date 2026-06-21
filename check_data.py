@@ -1,0 +1,11 @@
+import sqlite3, pandas as pd
+conn=sqlite3.connect('data/japan_car_market.db')
+df=pd.read_sql_query('SELECT * FROM used_cars_cleaned', conn)
+print('=== Brand count ===')
+print('Unique brands:', df['brand_clean'].nunique())
+print(df['brand_clean'].value_counts())
+print()
+print('=== Prefecture count ===')
+print('Unique prefectures:', df['prefecture'].nunique())
+print(df['prefecture'].value_counts())
+conn.close()

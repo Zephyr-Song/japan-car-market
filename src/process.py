@@ -14,6 +14,49 @@ sys.stdout.reconfigure(encoding='utf-8')
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'japan_car_market.db')
 
 
+# ====== Mapping tables ======
+
+JAPANESE_TO_ENGLISH_BRAND = {
+    'トヨタ': 'Toyota', 'ホンダ': 'Honda', '日産': 'Nissan',
+    'スズキ': 'Suzuki', 'ダイハツ': 'Daihatsu', 'マツダ': 'Mazda',
+    'スバル': 'Subaru', '三菱': 'Mitsubishi', 'レクサス': 'Lexus',
+    '光岡': 'Mitsuoka', 'BMW': 'BMW', 'メルセデス・ベンツ': 'Mercedes-Benz',
+    'メルセデス': 'Mercedes-Benz', 'ベンツ': 'Mercedes-Benz',
+    'アウディ': 'Audi', 'フォルクスワーゲン': 'VW',
+    'ポルシェ': 'Porsche', 'ミニ': 'MINI', 'ボルボ': 'Volvo',
+    'ジープ': 'Jeep', 'ランドローバー': 'Land Rover',
+    'プジョー': 'Peugeot', 'シトロエン': 'Citroen',
+    'フィアット': 'Fiat', 'スマート': 'Smart',
+    'アルファロメオ': 'Alfa Romeo', 'ジャガー': 'Jaguar',
+    'ケンワース': 'Kenworth', 'フォード': 'Ford',
+    'シボレー': 'Chevrolet', 'キャデラック': 'Cadillac',
+    'ベントレー': 'Bentley', 'ロールスロイス': 'Rolls-Royce',
+    'フェラーリ': 'Ferrari', 'マセラティ': 'Maserati',
+    'ランボルギーニ': 'Lamborghini', 'アストンマーティン': 'Aston Martin',
+    'テスラ': 'Tesla', 'リンカーン': 'Lincoln',
+    'オペル': 'Opel', 'ルノー': 'Renault', 'サーブ': 'Saab',
+}
+
+JAPANESE_TO_ENGLISH_PREFECTURE = {
+    '北海道': 'Hokkaido', '青森県': 'Aomori', '岩手県': 'Iwate',
+    '宮城県': 'Miyagi', '秋田県': 'Akita', '山形県': 'Yamagata',
+    '福島県': 'Fukushima', '茨城県': 'Ibaraki', '栃木県': 'Tochigi',
+    '群馬県': 'Gunma', '埼玉県': 'Saitama', '千葉県': 'Chiba',
+    '東京都': 'Tokyo', '神奈川県': 'Kanagawa', '新潟県': 'Niigata',
+    '富山県': 'Toyama', '石川県': 'Ishikawa', '福井県': 'Fukui',
+    '山梨県': 'Yamanashi', '長野県': 'Nagano', '岐阜県': 'Gifu',
+    '静岡県': 'Shizuoka', '愛知県': 'Aichi', '三重県': 'Mie',
+    '滋賀県': 'Shiga', '京都府': 'Kyoto', '大阪府': 'Osaka',
+    '兵庫県': 'Hyogo', '奈良県': 'Nara', '和歌山県': 'Wakayama',
+    '鳥取県': 'Tottori', '島根県': 'Shimane', '岡山県': 'Okayama',
+    '広島県': 'Hiroshima', '山口県': 'Yamaguchi', '徳島県': 'Tokushima',
+    '香川県': 'Kagawa', '愛媛県': 'Ehime', '高知県': 'Kochi',
+    '福岡県': 'Fukuoka', '佐賀県': 'Saga', '長崎県': 'Nagasaki',
+    '熊本県': 'Kumamoto', '大分県': 'Oita', '宮崎県': 'Miyazaki',
+    '鹿児島県': 'Kagoshima', '沖縄県': 'Okinawa',
+}
+
+
 def load_data():
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT * FROM used_cars", conn)
@@ -64,7 +107,6 @@ def parse_displacement(disp_str):
 
 
 def classify_vehicle(displacement):
-    """English vehicle class labels to avoid encoding issues in SQLite"""
     if displacement is None:
         return "Unknown"
     if displacement <= 660:
@@ -91,18 +133,6 @@ def classify_brand_origin(brand):
     return "Import"
 
 
-JAPANESE_TO_ENGLISH_BRAND = {
-    'トヨタ': 'Toyota', 'ホンダ': 'Honda', '日産': 'Nissan',
-    'スズキ': 'Suzuki', 'ダイハツ': 'Daihatsu', 'マツダ': 'Mazda',
-    'スバル': 'Subaru', '三菱': 'Mitsubishi', 'レクサス': 'Lexus',
-    '光岡': 'Mitsuoka', 'BMW': 'BMW', 'メルセデス': 'Mercedes-Benz',
-    'ベンツ': 'Mercedes-Benz', 'アウディ': 'Audi', 'フォルクスワーゲン': 'VW',
-    'ポルシェ': 'Porsche', 'ミニ': 'MINI', 'ボルボ': 'Volvo',
-    'ジープ': 'Jeep', 'ランドローバー': 'Land Rover',
-    'プジョー': 'Peugeot', 'シトロエン': 'Citroen',
-}
-
-
 def clean_brand(brand):
     if not brand or pd.isna(brand):
         return "Unknown"
@@ -113,38 +143,36 @@ def clean_brand(brand):
     return brand
 
 
+def clean_prefecture(pref):
+    if not pref or pd.isna(pref):
+        return "Unknown"
+    pref = str(pref).strip()
+    return JAPANESE_TO_ENGLISH_PREFECTURE.get(pref, pref)
+
+
 def process_data():
     df = load_data()
 
     print("\n=== Data Cleaning Started ===")
 
-    # Remove empty records
     before = len(df)
     df = df.dropna(subset=['model'])
     print(f"Removed empty model records: {before - len(df)}")
 
-    # Parse year
     df['year_ce'] = df['year'].apply(parse_japanese_year)
     print(f"Year parsed: {df['year_ce'].notna().sum()} / {len(df)}")
 
-    # Parse mileage
     df['mileage_wan_km'] = df['mileage'].apply(parse_mileage)
     print(f"Mileage parsed: {df['mileage_wan_km'].notna().sum()} / {len(df)}")
 
-    # Parse displacement
     df['displacement_cc'] = df['displacement'].apply(parse_displacement)
     print(f"Displacement parsed: {df['displacement_cc'].notna().sum()} / {len(df)}")
 
-    # Vehicle class (English labels)
     df['vehicle_class'] = df['displacement_cc'].apply(classify_vehicle)
-
-    # Brand origin
-    df['brand_origin'] = df['brand_clean'] if 'brand_clean' in df.columns else df['brand'].apply(clean_brand)
-    # Re-apply clean_brand on raw brand
     df['brand_clean'] = df['brand'].apply(clean_brand)
     df['brand_origin'] = df['brand_clean'].apply(classify_brand_origin)
+    df['prefecture'] = df['prefecture'].apply(clean_prefecture)
 
-    # Save
     conn = sqlite3.connect(DB_PATH)
     df.to_sql('used_cars_cleaned', conn, if_exists='replace', index=False)
     conn.close()
@@ -155,6 +183,8 @@ def process_data():
     print(df['brand_clean'].value_counts().head(15).to_string())
     print(f"\nVehicle class distribution:")
     print(df['vehicle_class'].value_counts().to_string())
+    print(f"\nPrefecture distribution (Top 10):")
+    print(df['prefecture'].value_counts().head(10).to_string())
     print(f"\nPrice stats (man-yen):")
     print(df['price_vehicle'].describe().to_string())
     print(f"\nYear range: {df['year_ce'].min()} - {df['year_ce'].max()}")
