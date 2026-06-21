@@ -312,6 +312,7 @@ def chart_year_trend(df):
 
     fig = go.Figure()
 
+    # P25-P75 confidence band — thicker fill
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['p75'],
         mode='lines', line=dict(width=0), showlegend=False
@@ -319,27 +320,48 @@ def chart_year_trend(df):
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['p25'],
         mode='lines', line=dict(width=0), fill='tonexty',
-        fillcolor='rgba(26,115,232,0.15)', name='P25-P75 Range'
+        fillcolor='rgba(26,115,232,0.25)', name='P25–P75 Range',
+        hovertemplate='P75: %{y:.0f}<extra></extra>'
     ))
 
+    # Average — bold solid line + large white-bordered markers
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['avg_price'],
-        mode='lines+markers', name='Average',
+        mode='lines+markers+text', name='Average',
         line=dict(color='#1a73e8', width=3),
-        marker=dict(size=8, color=year_stats['count'], colorscale='YlOrRd',
-                    showscale=True, colorbar=dict(title='Count'))
+        marker=dict(size=12, color='#1a73e8',
+                    line=dict(color='white', width=2)),
+        text=[f"{v:.0f}" for v in year_stats['avg_price']],
+        textposition='top center', textfont=dict(size=10, color='#1a73e8'),
+        hovertemplate='Year %{x} · Avg: %{y:.0f} man-yen · n=%{customdata}<extra></extra>',
+        customdata=year_stats['count'],
     ))
 
+    # Median — dashed green
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['median_price'],
         mode='lines+markers', name='Median',
-        line=dict(color='#34a853', width=2, dash='dot')
+        line=dict(color='#34a853', width=2, dash='dash'),
+        marker=dict(size=8, color='#34a853', line=dict(color='white', width=1.5)),
+        hovertemplate='Year %{x} · Median: %{y:.0f} man-yen<extra></extra>',
+    ))
+
+    # Sample size bar chart on secondary y-axis
+    fig.add_trace(go.Bar(
+        x=year_stats['year_ce'], y=year_stats['count'],
+        name='Sample Size', yaxis='y2',
+        marker_color='rgba(251,188,4,0.4)', marker_line_color='#fbbc04',
+        marker_line_width=1, hovertemplate='Year %{x}: %{y} cars<extra></extra>',
     ))
 
     fig.update_layout(
-        title="Price Trend by Model Year (P25-P75 band + count heatmap)",
+        title="Price Trend by Model Year",
         xaxis_title="Model Year", yaxis_title="Price (man-yen)",
-        hovermode="x unified", height=500
+        yaxis2=dict(title='Sample Size', overlaying='y', side='right',
+                    showgrid=False, rangemode='tozero'),
+        hovermode="x unified", height=550,
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        bargap=0.3,
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -367,15 +389,11 @@ def chart_prefecture(df):
 
 def chart_forecast_demo(df):
     """Price prediction demo — uses model-year trend as proxy until multi-day data available"""
-    st.markdown("""
-    > 💡 **Prediction Module**: Currently showing cross-sectional trend by model year.
-    > With multi-day crawl data, Prophet time-series forecasting will auto-enable.
-    """)
+    st.markdown("> 💡 **Prediction Module**: Currently showing cross-sectional trend by model year.  \nWith multi-day crawl data, Prophet time-series forecasting will auto-enable.")
 
     price_col = 'price_vehicle'
     df_p = df[(df[price_col] > 0) & df['year_ce'].notna() & (df['year_ce'] >= 2005)].copy()
 
-    # Simulate forecast by fitting a polynomial to year avg prices
     year_stats = df_p.groupby('year_ce').agg(
         avg_price=(price_col, 'mean'),
         count=(price_col, 'count'),
@@ -395,58 +413,72 @@ def chart_forecast_demo(df):
 
     fig = go.Figure()
 
-    # Historical data
+    # Historical data — bold markers with white border + value labels
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['avg_price'],
-        mode='lines+markers', name='Historical Average',
+        mode='lines+markers+text', name='Historical Average',
         line=dict(color='#1a73e8', width=3),
-        marker=dict(size=10, color=year_stats['count'], colorscale='YlOrRd',
-                    showscale=True, colorbar=dict(title='Sample Size'))
+        marker=dict(size=12, color='#1a73e8', line=dict(color='white', width=2)),
+        text=[f"{v:.0f}" for v in year_stats['avg_price']],
+        textposition='top center', textfont=dict(size=10, color='#1a73e8'),
+        hovertemplate='Year %{x} · Avg: %{y:.0f} man-yen · n=%{customdata}<extra></extra>',
+        customdata=year_stats['count'],
     ))
 
-    # Trend line (full range)
+    # Trend line (dashed, subtle)
     fig.add_trace(go.Scatter(
         x=future_years, y=predicted,
         mode='lines', name='Trend (Polynomial Fit)',
         line=dict(color='#ea4335', width=2, dash='dash')
     ))
 
-    # Forecast zone
+    # Forecast zone — bold markers + value labels
     last_year = year_stats['year_ce'].max()
     future_mask = future_years > last_year
     if future_mask.any():
+        fy = future_years[future_mask]
+        fp = predicted[future_mask]
+
         fig.add_trace(go.Scatter(
-            x=future_years[future_mask], y=predicted[future_mask],
-            mode='lines+markers', name='Forecast',
+            x=fy, y=fp,
+            mode='lines+markers+text', name='Forecast',
             line=dict(color='#ea4335', width=3),
-            marker=dict(size=10, symbol='diamond')
+            marker=dict(size=14, color='#ea4335', symbol='diamond',
+                        line=dict(color='white', width=2)),
+            text=[f"{v:.0f}" for v in fp],
+            textposition='top center', textfont=dict(size=11, color='#ea4335',
+                                                     ),
+            hovertemplate='Forecast %{x} · %{y:.0f} man-yen<extra></extra>',
         ))
 
-        # Confidence band (±15% for demo)
+        # 80% Confidence band
         fig.add_trace(go.Scatter(
-            x=future_years[future_mask],
-            y=predicted[future_mask] * 1.15,
+            x=fy, y=fp * 1.15,
             mode='lines', line=dict(width=0), showlegend=False
         ))
         fig.add_trace(go.Scatter(
-            x=future_years[future_mask],
-            y=predicted[future_mask] * 0.85,
+            x=fy, y=fp * 0.85,
             mode='lines', line=dict(width=0), fill='tonexty',
-            fillcolor='rgba(234,67,53,0.15)', name='80% Confidence'
+            fillcolor='rgba(234,67,53,0.2)', name='80% Confidence',
+            hovertemplate='Bound: %{y:.0f}<extra></extra>'
         ))
 
-    fig.add_vline(x=last_year + 0.5, line_dash="dot", line_color="gray",
-                  annotation_text="Forecast →")
+    # Vertical divider
+    fig.add_vline(x=last_year + 0.5, line_dash="dot", line_color="#9e9e9e",
+                  line_width=2,
+                  annotation_text="Forecast →", annotation_position="top left",
+                  annotation_font=dict(size=13, color='#ea4335'))
 
     fig.update_layout(
-        title="Price Trend & Forecast (Polynomial + Projected 3 Years)",
+        title="Price Trend & 3-Year Forecast",
         xaxis_title="Model Year", yaxis_title="Avg Price (man-yen)",
-        hovermode="x unified", height=500
+        hovermode="x unified", height=550,
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
     )
     st.plotly_chart(fig, use_container_width=True)
 
     # Brand-specific forecast
-    st.markdown("#### 🏭 Brand-Level Trend Forecast")
+    st.markdown("#### 🏭 Top 5 Brand Price Trends")
     brand_counts = df_p['brand_clean'].value_counts()
     top5 = brand_counts.head(5).index.tolist()
 
@@ -459,7 +491,15 @@ def chart_forecast_demo(df):
                    title="Top 5 Brand Price Trends",
                    labels={'year_ce': 'Model Year', 'avg_price': 'Avg Price (man-yen)', 'brand_clean': 'Brand'},
                    markers=True, height=450)
-    fig2.update_layout(hovermode="x unified")
+    fig2.update_layout(
+        hovermode="x unified",
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+    )
+    # Make brand lines thicker + larger markers
+    for trace in fig2.data:
+        trace.line.width = 3
+        trace.marker.size = 8
+        trace.marker.line = dict(color='white', width=1.5)
     st.plotly_chart(fig2, use_container_width=True)
 
 
