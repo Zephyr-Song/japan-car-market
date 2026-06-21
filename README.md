@@ -1,70 +1,135 @@
-# 🇯🇵 日本汽车市场智能分析系统
-
-> 基于 [德国汽车市场智能分析系统](https://github.com/Zephyr-Song/japan-car-market) 的方法论，复刻到日本二手车市场
+# 🇯🇵 日本二手车市场智能分析系统
 
 [![Data Source](https://img.shields.io/badge/数据源-carsensor.net-blue)](https://www.carsensor.net/usedcar/)
 [![Data Count](https://img.shields.io/badge/采集数据-942台车-green)]()
 [![Python](https://img.shields.io/badge/Python-3.10+-yellow)]()
+[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B)]()
 
-## 📊 数据概览
+> 动态监控日本二手车市场价格、品牌分布以及市场变化趋势
+
+## 🔍 市场调查概要
+
+日本是全球第四大汽车市场，年交易二手车约 750 万台，市场规模超过 4 万亿日元。本系统采集 [carsensor.net](https://www.carsensor.net/usedcar/)（日本最大二手车平台，月访问量超 6000 万）的实时挂牌数据，覆盖 19 个品牌、47 个都道府县、5 个车辆级别，提供从数据采集到趋势预测的全链路分析。
+
+### 数据规模
 
 | 指标 | 数值 |
 |------|------|
 | 采集数据量 | 942 台车 |
-| 覆盖品牌 | 19 个 |
+| 覆盖品牌 | 19 个（国産 9 + 輸入車 10） |
 | 价格范围 | 14.6 ~ 3,748 万円 |
-| 平均价格 | 197.5 万円 |
-| 年式范围 | 2005 - 2026 |
+| 平均价格 | 197.5 万円（约 ¥9,580） |
+| 年式范围 | 2005 ~ 2026 |
+| 覆盖地区 | 25+ 都道府县 |
+
+---
+
+## 🇯🇵 日本二手车市场核心特征
+
+### 1. K-car 现象 — 全球独一无二的细分市场
+
+**軽自動車（K-car）** 是日本独有的汽车分类标准，排量 ≤660cc、车长 ≤3.4m、车宽 ≤1.48m，享受大幅减税、低保险费、**无需提交停车证明**（城市购车最大门槛）等政策优惠。
+
+| K-car 指标 | 本系统数据 |
+|-----------|----------|
+| 市场占比 | **31.7%**（299/942台）|
+| 均价 | **95.5 万円**（约 ¥4,600）|
+| 代表车型 | Honda N-BOX、Suzuki ハスラー、Daihatsu ミライース |
+| 价格区间 | 14.6 ~ 151.4 万円 |
+
+> 💡 K-car 占日本新车销量的 40%+，二手车市场同样举足轻重。均价仅为普通车的一半，是日本城市通勤的绝对主力。
+
+### 2. 品牌价格金字塔 — 5 个梯队
+
+| 梯队 | 品牌 | 均价(万円) | 特征 |
+|------|------|-----------|------|
+| 🏆 豪华进口 | Mercedes-Benz | 600.8 | 品牌溢价最高，G63 单车 3,748 万円 |
+| 🏅 进口高端 | BMW / Jeep / Audi | 330~460 | 德系三强 + 美系越野 |
+| 🥉 准豪华 | Lexus / Volvo / MINI / Peugeot | 220~280 | 日系豪华 + 欧洲小众 |
+| ⚡ 国民品牌 | Toyota / Honda / Nissan | 116~161 | 市场主力，数据量最大 |
+| 💰 经济品牌 | Suzuki / Mazda / Daihatsu | 78~98 | K-car 和小型车主导 |
+
+### 3. 车辆级别与排量体系
+
+日本汽车的分级体系与欧美截然不同，排量直接决定税费和保险等级：
+
+| 级别 | 排量 | 均价(万円) | 市场占比 | 典型用途 |
+|------|------|-----------|---------|---------|
+| 軽自動車 K-car | ≤660cc | 95.5 | 31.7% | 城市通勤、家庭第二台车 |
+| 小型車 | ≤1500cc | 142.4 | 26.5% | 通勤+周末出行 |
+| 普通車 | 1501-2000cc | 263.0 | 28.8% | 家庭主力用车 |
+| 中級車 | 2001-3000cc | 412.3 | 9.1% | 商务/长途 |
+| 高級車 | 3001cc+ | 420.5 | 3.8% | 豪华/进口 |
+
+### 4. 地域价格差异
+
+| 地区 | 均价(万円) | 数据量 | 原因分析 |
+|------|-----------|--------|---------|
+| 東京都 | 580.3 | 41 | 豪车经销商集中（港区/涩谷区），客户群高端 |
+| 神奈川県 | 342.6 | 47 | 横滨港进口车集散地 |
+| 千葉県 | 272.7 | 75 | 郊区大型车行多，中端市场为主 |
+| 大阪府 | 211.8 | 87 | 关西经济中心，竞争激烈压低均价 |
+| 愛知県 | 177.8 | 113 | 丰田总部，国产车比例高，数据量最大 |
+
+### 5. 年式与折旧规律
+
+- **5 年车** (2021年式): 均价约 250 万円，折旧 ~35%
+- **10 年车** (2016年式): 均价约 130 万円，折旧 ~55%
+- **15 年车** (2011年式): 均价约 80 万円，折旧 ~70%
+- 日本车的折旧曲线前5年陡峭（年约7%），5年后趋于平缓（年约3-4%）
+- **K-car 折旧最慢**：15年车龄仍可卖 30-50 万円
+
+---
 
 ## 📈 可视化分析
 
-### 品牌平均价格对比
-![品牌平均价格对比](data/analysis/brand_avg_price.png)
+### 综合数据仪表盘
+![综合仪表盘](data/analysis/07_dashboard_overview.png)
 
-### 价格分布
-![价格分布](data/analysis/price_distribution.png)
+### 价格分布与累积曲线
+![价格分布](data/analysis/01_price_distribution.png)
 
-### 车辆级别分析
-![车辆级别分析](data/analysis/vehicle_class_analysis.png)
+### 品牌价格区间（箱线图）
+![品牌价格区间](data/analysis/02_brand_price_range.png)
 
-### 年式分布
-![年式分布](data/analysis/year_distribution.png)
+### 车辆级别多维度雷达图
+![雷达图](data/analysis/03_vehicle_class_radar.png)
 
-## 🇯🇵 日本市场特色发现
+### 年式-价格动态趋势
+![年式趋势](data/analysis/04_year_price_trend.png)
 
-### K-car 现象
-**軽自動車 (K-car)** 是日本独有的市场分类——排量 ≤660cc，享受减税优惠：
-- 占日本二手车市场 **31.7%**
-- 均价仅 **95.5 万円**（约 ¥4,600）
-- 以 Honda N-BOX、Suzuki ハスラー、Daihatsu ミライース 为代表
+### 地区价格热力图
+![地区热力图](data/analysis/05_prefecture_heatmap.png)
 
-### 品牌价格金字塔
-| 梯队 | 品牌 | 均价(万円) |
-|------|------|-----------|
-| 🏆 豪华进口 | Mercedes-Benz | 600.8 |
-| 🏅 进口高端 | BMW / Jeep / Audi | 330-460 |
-| 🥉 准豪华 | Lexus / Volvo / MINI | 220-280 |
-| ⚡ 国民品牌 | Toyota / Honda / Nissan | 116-161 |
-| 💰 经济品牌 | Suzuki / Daihatsu / Mazda | 78-98 |
+### 品牌市场构成
+![品牌份额](data/analysis/06_brand_market_share.png)
 
-### 地域差异
-- **東京都** 均价最高 (580.3万円) —— 豪车经销商集中地
-- **愛知県** 数据量最多 (113台) —— 丰田总部所在地
-- **大阪府** 数据量第二 (87台) —— 关西经济中心
+---
 
-## 🔧 技术栈
+## 🔧 技术架构
 
 ```
-Playwright (爬虫) → Pandas (清洗) → SQLite (存储) → Prophet (预测) → Streamlit (Dashboard)
+Playwright (爬虫) → Pandas (清洗) → SQLite (存储) → 分析/可视化 → Prophet (预测) → Streamlit (Dashboard)
 ```
 
-| 模块 | 说明 |
-|------|------|
-| `src/crawler.py` | Playwright 爬虫，按10个分类采集 carsensor.net |
-| `src/process.py` | 数据清洗：年号→西元、K-car分类、品牌英文映射 |
-| `src/analyze.py` | 统计分析 + matplotlib 可视化 |
-| `src/forecast.py` | Prophet 趋势预测 |
-| `src/dashboard.py` | Streamlit 交互式 Dashboard |
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| 数据采集 | `src/crawler.py` | Playwright 无头浏览器，按 10 个分类遍历 carsensor.net |
+| 数据清洗 | `src/process.py` | 日本年号→西元、K-car 分类、品牌英文映射、排量解析 |
+| 静态分析 | `src/analyze.py` | 7 张专业可视化图表（箱线图/雷达图/热力图/仪表盘等）|
+| 趋势预测 | `src/forecast.py` | Prophet 时间序列预测 |
+| 交互面板 | `src/dashboard.py` | Streamlit 动态 Dashboard（6 个分析模块 + 全局筛选）|
+
+### 爬虫关键技术
+
+| 挑战 | 解决方案 |
+|------|---------|
+| 图片懒加载 `document.write` 污染 `<a>` 文本 | 从 `<img alt>` 提取车型名 |
+| 分页 URL 非标准 `?page=N` | 使用 `index2.html` 格式 |
+| 品牌分布不均 | 按 10 个分类（国产/进口/K-car/SUV/MPV 等）分别采集 |
+| 反爬限流 | 每页间隔 2-5 秒随机延迟 |
+
+---
 
 ## 🚀 快速开始
 
@@ -85,50 +150,30 @@ python src/process.py
 python src/analyze.py
 ```
 
-### 4. 启动 Dashboard
+### 4. 启动交互式 Dashboard
 ```bash
 streamlit run src/dashboard.py
 ```
 
-## 📂 项目结构
+Dashboard 包含 6 个分析模块：
+- 💰 **价格分析** — 直方图 + 动态区间统计
+- 🏭 **品牌分析** — 箱线图 + 旭日图市场份额
+- 🚙 **车辆级别** — K-car 专题深度分析
+- 📈 **年式趋势** — P25-P75 区间 + 数据量热力
+- 🗺️ **地区分析** — 都道府县均价排名
+- 📋 **数据探索** — 可筛选数据表
 
-```
-japan-car-market/
-├── README.md
-├── requirements.txt
-├── .gitignore
-├── src/
-│   ├── crawler.py          # Playwright 爬虫
-│   ├── process.py          # 数据清洗
-│   ├── analyze.py          # 分析 + 可视化
-│   ├── forecast.py         # Prophet 趋势预测
-│   ├── dashboard.py        # Streamlit Dashboard
-│   ├── debug_dom.py        # DOM 调试工具
-│   └── debug_brands.py     # 品牌URL调试
-└── data/
-    └── analysis/
-        ├── price_distribution.png
-        ├── brand_avg_price.png
-        ├── vehicle_class_analysis.png
-        └── year_distribution.png
-```
-
-## 🇩🇪 vs 🇯🇵 与德国系统对照
-
-| 功能 | 🇩🇪 德国系统 | 🇯🇵 日本系统 |
-|------|------------|------------|
-| 数据源 | AutoScout24 | carsensor.net |
-| 价格单位 | € | 万円 |
-| 特色分类 | 燃料类型 | K-car / 車両級別 |
-| 地区维度 | 联邦州 | 都道府县 |
-| 懒加载问题 | 无 | document.write 污染 |
+---
 
 ## ⚠️ 已知局限
 
-- 标价非成交价（日本二手车通常有议价空间）
-- 单次采集数据量有限（~1000台），建议多日持续采集
-- 反爬机制：请求过快会被限流/超时
-- Prophet 预测需持续采集才能生成有效趋势
+| 局限 | 说明 |
+|------|------|
+| 标价 ≠ 成交价 | 日本二手车标价通常有 5-15% 议价空间 |
+| 单日快照 | 每次采集为单日数据，需持续采集构建时间序列 |
+| 数据量有限 | 单次 ~1000 台，carsensor.net 全站约 30 万台 |
+| 反爬限制 | 请求过快触发限流/超时 |
+| Prophet 需时间序列 | 至少需要 30 天连续采集数据 |
 
 ## 📄 License
 
