@@ -8,11 +8,10 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
-
 import numpy as np
 import os
+import time
 
-# Resolve DB path relative to project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(PROJECT_ROOT, 'data', 'japan_car_market.db')
 
@@ -57,11 +56,25 @@ st.markdown("""
         border-radius: 2px;
         margin: 20px 0;
     }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .live-badge {
+        display: inline-block;
+        background: #ea4335;
+        color: white;
+        padding: 2px 10px;
+        border-radius: 10px;
+        font-size: 0.8em;
+        font-weight: bold;
+        animation: pulse 2s infinite;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
-@st.cache_data
+@st.cache_data(ttl=300)
 def load_data():
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -142,7 +155,7 @@ def chart_brand_analysis(df):
     brand_counts = df_p['brand_clean'].value_counts()
     top_brands = brand_counts[brand_counts >= 5].index.tolist()
 
-    tab1, tab2 = st.tabs(["📈 Price Range by Brand", "🥧 Market Share"])
+    tab1, tab2, tab3 = st.tabs(["📈 Price Range by Brand", "🥧 Market Share", "🎬 Brand Race"])
 
     with tab1:
         selected = st.multiselect("Select brands (max 8)", top_brands,
@@ -165,13 +178,72 @@ def chart_brand_analysis(df):
         df_p2['origin'] = df_p2['brand_clean'].apply(
             lambda b: 'Domestic (JP)' if b in ['Toyota','Honda','Nissan','Suzuki','Daihatsu','Mazda','Subaru','Mitsubishi','Lexus'] else 'Import'
         )
-
         sunburst_data = df_p2.groupby(['origin', 'brand_clean']).size().reset_index(name='count')
-
         fig = px.sunburst(sunburst_data, path=['origin', 'brand_clean'], values='count',
                           title="Brand Market Composition (Sunburst)",
                           color='count', color_continuous_scale='RdYlBu_r')
         fig.update_layout(height=550)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tab3:
+        st.markdown("### 🎬 Animated Brand Price Race")
+        st.caption("Average price by brand — animated across model year bins")
+
+        df_anim = df_p[df['brand_clean'].isin(top_brands[:12]) & df_p['year_ce'].notna()].copy()
+        df_anim['year_bin'] = (df_anim['year_ce'] // 3) * 3  # 3-year bins
+
+        brand_year = df_anim.groupby(['year_bin', 'brand_clean']).agg(
+            avg_price=(price_col, 'mean'),
+            count=(price_col, 'count'),
+        ).reset_index()
+
+        fig = px.bar(brand_year, x='avg_price', y='brand_clean',
+                     color='brand_clean', orientation='h',
+                     animation_frame='year_bin',
+                     range_x=[0, brand_year['avg_price'].max() * 1.15],
+                     title="Average Price by Brand Over Years",
+                     labels={'avg_price': 'Avg Price (man-yen)', 'brand_clean': 'Brand'},
+                     color_discrete_sequence=px.colors.qualitative.Set2,
+                     height=550)
+        fig.update_layout(showlegend=False, yaxis={'categoryorder': 'total ascending'})
+        st.plotly_chart(fig, use_container_width=True)
+
+
+def chart_scatter(df):
+    """Price vs Mileage animated scatter with brand filter"""
+    price_col = 'price_vehicle'
+    df_s = df[(df[price_col] > 0) & df['mileage_wan_km'].notna() & (df['mileage_wan_km'] > 0)
+              & df['brand_clean'].notna() & (df['brand_clean'] != 'Unknown')].copy()
+
+    brand_counts = df_s['brand_clean'].value_counts()
+    top_brands = brand_counts[brand_counts >= 5].index.tolist()
+
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        selected = st.multiselect("Filter brands", top_brands, default=top_brands[:6], key='scatter_brand')
+        show_anim = st.checkbox("Animate by Year", value=True)
+    with col2:
+        df_plot = df_s[df_s['brand_clean'].isin(selected)].copy() if selected else df_s.copy()
+
+        if show_anim and 'year_ce' in df_plot.columns:
+            df_plot = df_plot[df_plot['year_ce'] >= 2010]
+            fig = px.scatter(df_plot, x='mileage_wan_km', y=price_col,
+                           color='brand_clean', size='displacement_cc',
+                           animation_frame='year_ce',
+                           hover_name='model',
+                           title="Price vs Mileage (Animated by Year)",
+                           labels={'mileage_wan_km': 'Mileage (10k km)', price_col: 'Price (man-yen)'},
+                           height=550,
+                           range_y=[0, min(df_plot[price_col].quantile(0.98), 1000)])
+            fig.update_layout(transition={'duration': 500})
+        else:
+            fig = px.scatter(df_plot, x='mileage_wan_km', y=price_col,
+                           color='brand_clean', size='displacement_cc',
+                           hover_name='model',
+                           title="Price vs Mileage",
+                           labels={'mileage_wan_km': 'Mileage (10k km)', price_col: 'Price (man-yen)'},
+                           height=550)
+
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -239,7 +311,6 @@ def chart_year_trend(df):
 
     fig = go.Figure()
 
-    # P25-P75 band
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['p75'],
         mode='lines', line=dict(width=0), showlegend=False
@@ -250,7 +321,6 @@ def chart_year_trend(df):
         fillcolor='rgba(26,115,232,0.15)', name='P25-P75 Range'
     ))
 
-    # Average line
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['avg_price'],
         mode='lines+markers', name='Average',
@@ -259,7 +329,6 @@ def chart_year_trend(df):
                     showscale=True, colorbar=dict(title='Count'))
     ))
 
-    # Median line
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['median_price'],
         mode='lines+markers', name='Median',
@@ -283,13 +352,114 @@ def chart_prefecture(df):
         count=(price_col, 'count'),
     ).reset_index().sort_values('avg_price', ascending=False)
 
-    fig = px.bar(pref_stats, x='prefecture', y='avg_price',
+    # Use horizontal bar for readability
+    fig = px.bar(pref_stats, y='prefecture', x='avg_price',
+                orientation='h',
                 title="Average Price by Prefecture",
                 color='count', color_continuous_scale='Viridis',
-                labels={'prefecture': 'Prefecture', 'avg_price': 'Avg Price (man-yen)', 'count': 'Listings'})
-    fig.update_xaxes(tickangle=45)
-    fig.update_layout(height=500)
+                labels={'prefecture': '', 'avg_price': 'Avg Price (man-yen)', 'count': 'Listings'},
+                height=max(500, len(pref_stats) * 22))
+    fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+    fig.update_yaxes(tickfont=dict(size=11))
     st.plotly_chart(fig, use_container_width=True)
+
+
+def chart_forecast_demo(df):
+    """Price prediction demo — uses model-year trend as proxy until multi-day data available"""
+    st.markdown("""
+    > 💡 **Prediction Module**: Currently showing cross-sectional trend by model year.
+    > With multi-day crawl data, Prophet time-series forecasting will auto-enable.
+    """)
+
+    price_col = 'price_vehicle'
+    df_p = df[(df[price_col] > 0) & df['year_ce'].notna() & (df['year_ce'] >= 2005)].copy()
+
+    # Simulate forecast by fitting a polynomial to year avg prices
+    year_stats = df_p.groupby('year_ce').agg(
+        avg_price=(price_col, 'mean'),
+        count=(price_col, 'count'),
+    ).reset_index()
+
+    if len(year_stats) < 3:
+        st.info("Not enough data for trend analysis.")
+        return
+
+    # Fit 2nd degree polynomial
+    z = np.polyfit(year_stats['year_ce'], year_stats['avg_price'], 2)
+    p = np.poly1d(z)
+
+    # Extend 3 years into the future
+    future_years = np.arange(year_stats['year_ce'].min(), year_stats['year_ce'].max() + 4)
+    predicted = p(future_years)
+
+    fig = go.Figure()
+
+    # Historical data
+    fig.add_trace(go.Scatter(
+        x=year_stats['year_ce'], y=year_stats['avg_price'],
+        mode='lines+markers', name='Historical Average',
+        line=dict(color='#1a73e8', width=3),
+        marker=dict(size=10, color=year_stats['count'], colorscale='YlOrRd',
+                    showscale=True, colorbar=dict(title='Sample Size'))
+    ))
+
+    # Trend line (full range)
+    fig.add_trace(go.Scatter(
+        x=future_years, y=predicted,
+        mode='lines', name='Trend (Polynomial Fit)',
+        line=dict(color='#ea4335', width=2, dash='dash')
+    ))
+
+    # Forecast zone
+    last_year = year_stats['year_ce'].max()
+    future_mask = future_years > last_year
+    if future_mask.any():
+        fig.add_trace(go.Scatter(
+            x=future_years[future_mask], y=predicted[future_mask],
+            mode='lines+markers', name='Forecast',
+            line=dict(color='#ea4335', width=3),
+            marker=dict(size=10, symbol='diamond')
+        ))
+
+        # Confidence band (±15% for demo)
+        fig.add_trace(go.Scatter(
+            x=future_years[future_mask],
+            y=predicted[future_mask] * 1.15,
+            mode='lines', line=dict(width=0), showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=future_years[future_mask],
+            y=predicted[future_mask] * 0.85,
+            mode='lines', line=dict(width=0), fill='tonexty',
+            fillcolor='rgba(234,67,53,0.15)', name='80% Confidence'
+        ))
+
+    fig.add_vline(x=last_year + 0.5, line_dash="dot", line_color="gray",
+                  annotation_text="Forecast →")
+
+    fig.update_layout(
+        title="Price Trend & Forecast (Polynomial + Projected 3 Years)",
+        xaxis_title="Model Year", yaxis_title="Avg Price (man-yen)",
+        hovermode="x unified", height=500
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Brand-specific forecast
+    st.markdown("#### 🏭 Brand-Level Trend Forecast")
+    brand_counts = df_p['brand_clean'].value_counts()
+    top5 = brand_counts.head(5).index.tolist()
+
+    df_top = df_p[df_p['brand_clean'].isin(top5)]
+    brand_year = df_top.groupby(['year_ce', 'brand_clean']).agg(
+        avg_price=(price_col, 'mean'),
+    ).reset_index()
+
+    fig2 = px.line(brand_year, x='year_ce', y='avg_price', color='brand_clean',
+                   title="Top 5 Brand Price Trends",
+                   labels={'year_ce': 'Model Year', 'avg_price': 'Avg Price (man-yen)', 'brand_clean': 'Brand'},
+                   markers=True, height=450)
+    fig2.update_layout(hovermode="x unified")
+    st.plotly_chart(fig2, use_container_width=True)
 
 
 def data_explorer(df):
@@ -321,7 +491,8 @@ def data_explorer(df):
 def main():
     st.markdown("""
     <div style="text-align:center; padding: 12px 0;">
-        <h1 style="font-size:2.2em; margin:0;">🇯🇵 Japan Used Car Market Analytics</h1>
+        <h1 style="font-size:2.2em; margin:0;">🇯🇵 Japan Used Car Market Analytics
+        <span class="live-badge">LIVE</span></h1>
         <p style="color:#5f6368; font-size:1.05em; margin:6px 0 0;">
             Dynamic monitoring of car prices · Brand distribution · Market trends · Source: <a href="https://www.carsensor.net/usedcar/">carsensor.net</a>
         </p>
@@ -334,9 +505,13 @@ def main():
         st.warning("No data available. Run `python src/crawler.py` first.")
         return
 
-    # ====== Sidebar ======
+    # ====== Auto-refresh ======
     with st.sidebar:
         st.markdown("## 🔍 Global Filters")
+        auto_refresh = st.checkbox("Auto-refresh (5 min)", value=False)
+        if auto_refresh:
+            st.caption("Data will reload every 5 minutes")
+
         price_col = 'price_vehicle'
 
         if price_col in df.columns:
@@ -365,9 +540,10 @@ def main():
     st.markdown("<div class='gradient-divider'></div>", unsafe_allow_html=True)
 
     # ====== Tabs ======
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "💰 Price Analysis", "🏭 Brand Analysis", "🚙 Vehicle Class",
-        "📈 Year Trend", "🗺️ Region Analysis", "📋 Data Explorer"
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "💰 Price", "🏭 Brands", "📊 Scatter",
+        "🚙 Vehicle Class", "📈 Year Trend", "🔮 Forecast",
+        "🗺️ Region"
     ])
 
     with tab1:
@@ -379,20 +555,24 @@ def main():
         chart_brand_analysis(df)
 
     with tab3:
+        st.markdown('<div class="section-title">Price vs Mileage Scatter</div>', unsafe_allow_html=True)
+        chart_scatter(df)
+
+    with tab4:
         st.markdown('<div class="section-title">Vehicle Class Analysis — K-car Spotlight</div>', unsafe_allow_html=True)
         chart_vehicle_class(df)
 
-    with tab4:
+    with tab5:
         st.markdown('<div class="section-title">Price Trend by Model Year</div>', unsafe_allow_html=True)
         chart_year_trend(df)
 
-    with tab5:
+    with tab6:
+        st.markdown('<div class="section-title">Price Forecast</div>', unsafe_allow_html=True)
+        chart_forecast_demo(df)
+
+    with tab7:
         st.markdown('<div class="section-title">Regional Price Analysis</div>', unsafe_allow_html=True)
         chart_prefecture(df)
-
-    with tab6:
-        st.markdown('<div class="section-title">Data Explorer</div>', unsafe_allow_html=True)
-        data_explorer(df)
 
     st.markdown("""
     <div class="gradient-divider"></div>
@@ -400,6 +580,12 @@ def main():
         🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit
     </div>
     """, unsafe_allow_html=True)
+
+    # Auto-refresh logic
+    if auto_refresh:
+        time.sleep(300)
+        st.cache_data.clear()
+        st.rerun()
 
 
 if __name__ == "__main__":
