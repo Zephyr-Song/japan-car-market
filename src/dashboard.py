@@ -213,7 +213,8 @@ def chart_scatter(df):
     """Price vs Mileage animated scatter with brand filter"""
     price_col = 'price_vehicle'
     df_s = df[(df[price_col] > 0) & df['mileage_wan_km'].notna() & (df['mileage_wan_km'] > 0)
-              & df['brand_clean'].notna() & (df['brand_clean'] != 'Unknown')].copy()
+              & df['brand_clean'].notna() & (df['brand_clean'] != 'Unknown')
+              & df['displacement_cc'].notna()].copy()
 
     brand_counts = df_s['brand_clean'].value_counts()
     top_brands = brand_counts[brand_counts >= 5].index.tolist()
