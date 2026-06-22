@@ -8,9 +8,10 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import numpy as np
 import os
-import time
+from datetime import datetime
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(PROJECT_ROOT, 'data', 'japan_car_market.db')
@@ -32,11 +33,6 @@ st.markdown("""
         color: white;
         text-align: center;
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .kpi-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
     }
     .kpi-card h2 { margin:0; font-size:2em; font-weight:800; }
     .kpi-card p { margin:4px 0 0; opacity:0.9; font-size:0.9em; }
@@ -70,11 +66,18 @@ st.markdown("""
         font-weight: bold;
         animation: pulse 2s infinite;
     }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+        animation: slideIn 0.6s ease-out;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def load_data():
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -88,9 +91,9 @@ def load_data():
 def render_kpi_cards(df):
     price_col = 'price_vehicle'
     total = len(df)
-    avg_price = df[price_col].mean()
+    avg_price = df[price_col].mean() if price_col in df.columns and len(df) > 0 else 0
     n_brands = df['brand_clean'].nunique() if 'brand_clean' in df.columns else 0
-    kcar_pct = (df['vehicle_class'] == 'K-car (<=660cc)').mean() * 100 if 'vehicle_class' in df.columns else 0
+    kcar_pct = (df['vehicle_class'] == 'K-car (<=660cc)').mean() * 100 if 'vehicle_class' in df.columns and len(df) > 0 else 0
 
     cols = st.columns(4)
     kpis = [
@@ -102,7 +105,7 @@ def render_kpi_cards(df):
     for col, (icon, value, label, cls) in zip(cols, kpis):
         with col:
             st.markdown(f"""
-            <div class="kpi-card {cls}">
+            <div class="kpi-card {cls} animate-in">
                 <p>{icon}</p>
                 <h2>{value}</h2>
                 <p>{label}</p>
@@ -113,20 +116,20 @@ def render_kpi_cards(df):
 def chart_price_distribution(df):
     price_col = 'price_vehicle'
     df_p = df[(df[price_col] > 0) & (df[price_col] < 2000)].copy()
+    if len(df_p) == 0:
+        st.info("No data in selected price range.")
+        return
 
     col1, col2 = st.columns([2, 1])
-
     with col1:
         fig = px.histogram(df_p, x=price_col, nbins=60,
                            title="Price Distribution",
-                           color_discrete_sequence=['#1a73e8'],
-                           opacity=0.75)
+                           color_discrete_sequence=['#1a73e8'], opacity=0.75)
         fig.add_vline(x=df_p[price_col].mean(), line_dash="dash", line_color="#ea4335",
                       annotation_text=f"Mean: {df_p[price_col].mean():.0f}")
         fig.add_vline(x=df_p[price_col].median(), line_dash="dot", line_color="#34a853",
                       annotation_text=f"Median: {df_p[price_col].median():.0f}")
-        fig.update_layout(xaxis_title="Price (man-yen)", yaxis_title="Count",
-                         hovermode="x unified")
+        fig.update_layout(xaxis_title="Price (man-yen)", yaxis_title="Count", hovermode="x unified")
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -136,10 +139,8 @@ def chart_price_distribution(df):
         df_p2 = df_p.copy()
         df_p2['range'] = pd.cut(df_p2[price_col], bins=price_bins, labels=labels)
         bin_stats = df_p2.groupby('range', observed=True).agg(
-            count=(price_col, 'count'),
-            avg_price=(price_col, 'mean'),
+            count=(price_col, 'count'), avg_price=(price_col, 'mean'),
         )
-
         for label, row in bin_stats.iterrows():
             if row['count'] == 0:
                 continue
@@ -151,6 +152,9 @@ def chart_price_distribution(df):
 def chart_brand_analysis(df):
     price_col = 'price_vehicle'
     df_p = df[(df[price_col] > 0) & df['brand_clean'].notna()].copy()
+    if len(df_p) == 0:
+        st.info("No data available.")
+        return
 
     brand_counts = df_p['brand_clean'].value_counts()
     top_brands = brand_counts[brand_counts >= 5].index.tolist()
@@ -160,7 +164,6 @@ def chart_brand_analysis(df):
     with tab1:
         selected = st.multiselect("Select brands (max 8)", top_brands,
                                    default=top_brands[:8], key='brand_box')
-
         if selected:
             df_sel = df_p[df_p['brand_clean'].isin(selected)]
             fig = go.Figure()
@@ -169,8 +172,7 @@ def chart_brand_analysis(df):
                 fig.add_trace(go.Box(y=brand_data, name=brand, boxpoints='outliers',
                                      marker_size=3, line_width=2))
             fig.update_layout(title="Brand Price Range (Box Plot)",
-                             yaxis_title="Price (man-yen)",
-                             showlegend=True, height=500)
+                             yaxis_title="Price (man-yen)", showlegend=True, height=500)
             st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
@@ -187,34 +189,42 @@ def chart_brand_analysis(df):
 
     with tab3:
         st.markdown("### 🎬 Animated Brand Price Race")
-        st.caption("Average price by brand — animated across model year bins")
+        st.caption("Use the ▶️ Play button or slider to animate across model year groups")
 
-        df_anim = df_p[df['brand_clean'].isin(top_brands[:12]) & df_p['year_ce'].notna()].copy()
-        df_anim['year_bin'] = (df_anim['year_ce'] // 3) * 3  # 3-year bins
+        df_anim = df_p[df_p['brand_clean'].isin(top_brands[:12]) & df_p['year_ce'].notna()].copy()
+        df_anim['year_bin'] = (df_anim['year_ce'] // 3) * 3
 
         brand_year = df_anim.groupby(['year_bin', 'brand_clean']).agg(
             avg_price=(price_col, 'mean'),
             count=(price_col, 'count'),
         ).reset_index()
 
+        # Build animated bar chart with proper frame structure
         fig = px.bar(brand_year, x='avg_price', y='brand_clean',
                      color='brand_clean', orientation='h',
                      animation_frame='year_bin',
-                     range_x=[0, brand_year['avg_price'].max() * 1.15],
+                     range_x=[0, brand_year['avg_price'].max() * 1.2],
                      title="Average Price by Brand Over Years",
                      labels={'avg_price': 'Avg Price (man-yen)', 'brand_clean': 'Brand'},
                      color_discrete_sequence=px.colors.qualitative.Set2,
                      height=550)
         fig.update_layout(showlegend=False, yaxis={'categoryorder': 'total ascending'})
+
+        # Slower animation speed
+        fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 800
+        fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 600
+
         st.plotly_chart(fig, use_container_width=True)
 
 
 def chart_scatter(df):
-    """Price vs Mileage animated scatter with brand filter"""
     price_col = 'price_vehicle'
     df_s = df[(df[price_col] > 0) & df['mileage_wan_km'].notna() & (df['mileage_wan_km'] > 0)
               & df['brand_clean'].notna() & (df['brand_clean'] != 'Unknown')
               & df['displacement_cc'].notna()].copy()
+    if len(df_s) == 0:
+        st.info("No data available for scatter plot.")
+        return
 
     brand_counts = df_s['brand_clean'].value_counts()
     top_brands = brand_counts[brand_counts >= 5].index.tolist()
@@ -225,6 +235,9 @@ def chart_scatter(df):
         show_anim = st.checkbox("Animate by Year", value=True)
     with col2:
         df_plot = df_s[df_s['brand_clean'].isin(selected)].copy() if selected else df_s.copy()
+        if len(df_plot) == 0:
+            st.info("Select at least one brand.")
+            return
 
         if show_anim and 'year_ce' in df_plot.columns:
             df_plot = df_plot[df_plot['year_ce'] >= 2010]
@@ -236,7 +249,8 @@ def chart_scatter(df):
                            labels={'mileage_wan_km': 'Mileage (10k km)', price_col: 'Price (man-yen)'},
                            height=550,
                            range_y=[0, min(df_plot[price_col].quantile(0.98), 1000)])
-            fig.update_layout(transition={'duration': 500})
+            fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 600
+            fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 400
         else:
             fig = px.scatter(df_plot, x='mileage_wan_km', y=price_col,
                            color='brand_clean', size='displacement_cc',
@@ -244,7 +258,6 @@ def chart_scatter(df):
                            title="Price vs Mileage",
                            labels={'mileage_wan_km': 'Mileage (10k km)', price_col: 'Price (man-yen)'},
                            height=550)
-
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -255,6 +268,9 @@ def chart_vehicle_class(df):
 
     with tab1:
         df_p = df[(df[price_col] > 0) & df['vehicle_class'].notna()].copy()
+        if len(df_p) == 0:
+            st.info("No data.")
+            return
 
         c1, c2 = st.columns(2)
         with c1:
@@ -278,7 +294,6 @@ def chart_vehicle_class(df):
         st.markdown("""
         K-car is a uniquely Japanese vehicle category: engine ≤660cc, length ≤3.4m, width ≤1.48m.
         Benefits include **reduced taxes**, **lower insurance**, and **no parking certificate required**.
-        The perfect solution for Japan's dense cities and narrow streets.
         """)
 
         df_kcar = df[(df['vehicle_class'] == 'K-car (<=660cc)') & (df[price_col] > 0)].copy()
@@ -288,7 +303,7 @@ def chart_vehicle_class(df):
             with k1: st.metric("K-car Count", f"{len(df_kcar)}")
             with k2: st.metric("Avg Price", f"{df_kcar[price_col].mean():.1f} man-yen")
             with k3: st.metric("Lowest Price", f"{df_kcar[price_col].min():.1f} man-yen")
-            with k4: st.metric("Market Share", f"{len(df_kcar)/len(df)*100:.1f}%")
+            with k4: st.metric("Market Share", f"{len(df_kcar)/max(len(df),1)*100:.1f}%")
 
             kcar_brands = df_kcar['brand_clean'].value_counts().head(6)
             fig = px.bar(x=kcar_brands.index, y=kcar_brands.values,
@@ -301,6 +316,9 @@ def chart_vehicle_class(df):
 def chart_year_trend(df):
     price_col = 'price_vehicle'
     df_p = df[(df[price_col] > 0) & df['year_ce'].notna() & (df['year_ce'] >= 2005)].copy()
+    if len(df_p) == 0:
+        st.info("No data for year trend.")
+        return
 
     year_stats = df_p.groupby('year_ce').agg(
         avg_price=(price_col, 'mean'),
@@ -310,72 +328,75 @@ def chart_year_trend(df):
         p75=(price_col, lambda x: x.quantile(0.75)),
     ).reset_index()
 
-    fig = go.Figure()
+    # Dual-axis: price lines on left, count bars on right
+    fig = make_subplots(rows=1, cols=1, specs=[[{"secondary_y": True}]])
 
-    # P25-P75 confidence band — thicker fill
+    # P25-P75 band
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['p75'],
-        mode='lines', line=dict(width=0), showlegend=False
+        mode='lines', line=dict(width=0), showlegend=False, hoverinfo='skip'
     ))
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['p25'],
         mode='lines', line=dict(width=0), fill='tonexty',
-        fillcolor='rgba(26,115,232,0.25)', name='P25–P75 Range',
-        hovertemplate='P75: %{y:.0f}<extra></extra>'
+        fillcolor='rgba(26,115,232,0.2)', name='P25–P75',
+        hovertemplate='P25: %{y:.0f}<extra></extra>'
     ))
 
-    # Average — bold solid line + large white-bordered markers
+    # Average price
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['avg_price'],
         mode='lines+markers+text', name='Average',
         line=dict(color='#1a73e8', width=3),
-        marker=dict(size=12, color='#1a73e8',
-                    line=dict(color='white', width=2)),
+        marker=dict(size=10, color='#1a73e8', line=dict(color='white', width=2)),
         text=[f"{v:.0f}" for v in year_stats['avg_price']],
-        textposition='top center', textfont=dict(size=10, color='#1a73e8'),
-        hovertemplate='Year %{x} · Avg: %{y:.0f} man-yen · n=%{customdata}<extra></extra>',
+        textposition='top center', textfont=dict(size=9, color='#1a73e8'),
+        hovertemplate='Year %{x} · Avg: %{y:.0f} · n=%{customdata}<extra></extra>',
         customdata=year_stats['count'],
-    ))
+    ), secondary_y=False)
 
-    # Median — dashed green
+    # Median
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['median_price'],
         mode='lines+markers', name='Median',
         line=dict(color='#34a853', width=2, dash='dash'),
-        marker=dict(size=8, color='#34a853', line=dict(color='white', width=1.5)),
-        hovertemplate='Year %{x} · Median: %{y:.0f} man-yen<extra></extra>',
-    ))
+        marker=dict(size=7, color='#34a853', line=dict(color='white', width=1.5)),
+        hovertemplate='Year %{x} · Median: %{y:.0f}<extra></extra>',
+    ), secondary_y=False)
 
-    # Sample size bar chart on secondary y-axis
+    # Count bars on secondary axis
     fig.add_trace(go.Bar(
         x=year_stats['year_ce'], y=year_stats['count'],
-        name='Sample Size', yaxis='y2',
-        marker_color='rgba(251,188,4,0.4)', marker_line_color='#fbbc04',
-        marker_line_width=1, hovertemplate='Year %{x}: %{y} cars<extra></extra>',
-    ))
+        name='Sample Size', marker_color='rgba(251,188,4,0.5)',
+        marker_line_color='#fbbc04', marker_line_width=1,
+        hovertemplate='Year %{x}: %{y} cars<extra></extra>',
+    ), secondary_y=True)
 
     fig.update_layout(
         title="Price Trend by Model Year",
-        xaxis_title="Model Year", yaxis_title="Price (man-yen)",
-        yaxis2=dict(title='Sample Size', overlaying='y', side='right',
-                    showgrid=False, rangemode='tozero'),
         hovermode="x unified", height=550,
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='right', x=1),
         bargap=0.3,
     )
+    fig.update_yaxes(title_text="Price (man-yen)", secondary_y=False)
+    fig.update_yaxes(title_text="Sample Size", secondary_y=True, showgrid=False, rangemode='tozero')
+    fig.update_xaxes(title_text="Model Year", dtick=2)
+
     st.plotly_chart(fig, use_container_width=True)
 
 
 def chart_prefecture(df):
     price_col = 'price_vehicle'
     df_p = df[(df[price_col] > 0) & df['prefecture'].notna()].copy()
+    if len(df_p) == 0:
+        st.info("No data for region analysis.")
+        return
 
     pref_stats = df_p.groupby('prefecture').agg(
         avg_price=(price_col, 'mean'),
         count=(price_col, 'count'),
     ).reset_index().sort_values('avg_price', ascending=False)
 
-    # Use horizontal bar for readability
     fig = px.bar(pref_stats, y='prefecture', x='avg_price',
                 orientation='h',
                 title="Average Price by Prefecture",
@@ -388,11 +409,13 @@ def chart_prefecture(df):
 
 
 def chart_forecast_demo(df):
-    """Price prediction demo — uses model-year trend as proxy until multi-day data available"""
-    st.markdown("> 💡 **Prediction Module**: Currently showing cross-sectional trend by model year.  \nWith multi-day crawl data, Prophet time-series forecasting will auto-enable.")
-
     price_col = 'price_vehicle'
     df_p = df[(df[price_col] > 0) & df['year_ce'].notna() & (df['year_ce'] >= 2005)].copy()
+    if len(df_p) == 0:
+        st.info("No data for forecast.")
+        return
+
+    st.markdown("> 💡 **Prediction Module**: Cross-sectional trend by model year. With multi-day crawl data, Prophet time-series will auto-enable.")
 
     year_stats = df_p.groupby('year_ce').agg(
         avg_price=(price_col, 'mean'),
@@ -407,34 +430,34 @@ def chart_forecast_demo(df):
     z = np.polyfit(year_stats['year_ce'], year_stats['avg_price'], 2)
     p = np.poly1d(z)
 
-    # Extend 3 years into the future
     future_years = np.arange(year_stats['year_ce'].min(), year_stats['year_ce'].max() + 4)
     predicted = p(future_years)
 
+    last_year = year_stats['year_ce'].max()
+    future_mask = future_years > last_year
+
     fig = go.Figure()
 
-    # Historical data — bold markers with white border + value labels
+    # Historical
     fig.add_trace(go.Scatter(
         x=year_stats['year_ce'], y=year_stats['avg_price'],
-        mode='lines+markers+text', name='Historical Average',
+        mode='lines+markers+text', name='Historical Avg',
         line=dict(color='#1a73e8', width=3),
-        marker=dict(size=12, color='#1a73e8', line=dict(color='white', width=2)),
+        marker=dict(size=10, color='#1a73e8', line=dict(color='white', width=2)),
         text=[f"{v:.0f}" for v in year_stats['avg_price']],
-        textposition='top center', textfont=dict(size=10, color='#1a73e8'),
-        hovertemplate='Year %{x} · Avg: %{y:.0f} man-yen · n=%{customdata}<extra></extra>',
+        textposition='top center', textfont=dict(size=9, color='#1a73e8'),
+        hovertemplate='Year %{x} · Avg: %{y:.0f} · n=%{customdata}<extra></extra>',
         customdata=year_stats['count'],
     ))
 
-    # Trend line (dashed, subtle)
+    # Trend line
     fig.add_trace(go.Scatter(
         x=future_years, y=predicted,
-        mode='lines', name='Trend (Polynomial Fit)',
+        mode='lines', name='Trend Fit',
         line=dict(color='#ea4335', width=2, dash='dash')
     ))
 
-    # Forecast zone — bold markers + value labels
-    last_year = year_stats['year_ce'].max()
-    future_mask = future_years > last_year
+    # Forecast
     if future_mask.any():
         fy = future_years[future_mask]
         fp = predicted[future_mask]
@@ -443,29 +466,23 @@ def chart_forecast_demo(df):
             x=fy, y=fp,
             mode='lines+markers+text', name='Forecast',
             line=dict(color='#ea4335', width=3),
-            marker=dict(size=14, color='#ea4335', symbol='diamond',
+            marker=dict(size=12, color='#ea4335', symbol='diamond',
                         line=dict(color='white', width=2)),
             text=[f"{v:.0f}" for v in fp],
-            textposition='top center', textfont=dict(size=11, color='#ea4335',
-                                                     ),
+            textposition='top center', textfont=dict(size=10, color='#ea4335'),
             hovertemplate='Forecast %{x} · %{y:.0f} man-yen<extra></extra>',
         ))
 
-        # 80% Confidence band
+        # Confidence band
         fig.add_trace(go.Scatter(
-            x=fy, y=fp * 1.15,
-            mode='lines', line=dict(width=0), showlegend=False
+            x=fy, y=fp * 1.15, mode='lines', line=dict(width=0), showlegend=False
         ))
         fig.add_trace(go.Scatter(
-            x=fy, y=fp * 0.85,
-            mode='lines', line=dict(width=0), fill='tonexty',
+            x=fy, y=fp * 0.85, mode='lines', line=dict(width=0), fill='tonexty',
             fillcolor='rgba(234,67,53,0.2)', name='80% Confidence',
-            hovertemplate='Bound: %{y:.0f}<extra></extra>'
         ))
 
-    # Vertical divider
-    fig.add_vline(x=last_year + 0.5, line_dash="dot", line_color="#9e9e9e",
-                  line_width=2,
+    fig.add_vline(x=last_year + 0.5, line_dash="dot", line_color="#9e9e9e", line_width=2,
                   annotation_text="Forecast →", annotation_position="top left",
                   annotation_font=dict(size=13, color='#ea4335'))
 
@@ -473,11 +490,12 @@ def chart_forecast_demo(df):
         title="Price Trend & 3-Year Forecast",
         xaxis_title="Model Year", yaxis_title="Avg Price (man-yen)",
         hovermode="x unified", height=550,
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='right', x=1),
+        xaxis=dict(dtick=2),
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # Brand-specific forecast
+    # Brand trends
     st.markdown("#### 🏭 Top 5 Brand Price Trends")
     brand_counts = df_p['brand_clean'].value_counts()
     top5 = brand_counts.head(5).index.tolist()
@@ -493,40 +511,14 @@ def chart_forecast_demo(df):
                    markers=True, height=450)
     fig2.update_layout(
         hovermode="x unified",
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='right', x=1),
+        xaxis=dict(dtick=2),
     )
-    # Make brand lines thicker + larger markers
     for trace in fig2.data:
         trace.line.width = 3
         trace.marker.size = 8
         trace.marker.line = dict(color='white', width=1.5)
     st.plotly_chart(fig2, use_container_width=True)
-
-
-def data_explorer(df):
-    display_cols = ['brand_clean', 'model', 'price_vehicle', 'year_ce', 'mileage_wan_km',
-                    'displacement_cc', 'vehicle_class', 'prefecture', 'brand_origin']
-    available = [c for c in display_cols if c in df.columns]
-
-    col1, col2 = st.columns(2)
-    with col1:
-        brands = sorted(df['brand_clean'].dropna().unique()) if 'brand_clean' in df.columns else []
-        sel_brand = st.multiselect("Filter by brand", brands, default=[], key='exp_brand')
-    with col2:
-        if 'vehicle_class' in df.columns:
-            classes = sorted(df['vehicle_class'].dropna().unique())
-            sel_class = st.multiselect("Filter by class", classes, default=[], key='exp_class')
-        else:
-            sel_class = []
-
-    df_exp = df[available].copy()
-    if sel_brand:
-        df_exp = df_exp[df_exp['brand_clean'].isin(sel_brand)]
-    if sel_class:
-        df_exp = df_exp[df_exp['vehicle_class'].isin(sel_class)]
-
-    st.dataframe(df_exp, use_container_width=True, height=400)
-    st.caption(f"Showing {len(df_exp)} / {len(df)} records")
 
 
 def main():
@@ -541,40 +533,60 @@ def main():
     <div class="gradient-divider"></div>
     """, unsafe_allow_html=True)
 
-    df = load_data()
-    if len(df) == 0:
+    # Load raw data ONCE
+    df_raw = load_data()
+    if len(df_raw) == 0:
         st.warning("No data available. Run `python src/crawler.py` first.")
         return
 
-    # ====== Auto-refresh ======
+    # ====== Sidebar Filters (use df_raw for range, filter into df) ======
     with st.sidebar:
-        st.markdown("## 🔍 Global Filters")
-        auto_refresh = st.checkbox("Auto-refresh (5 min)", value=False)
-        if auto_refresh:
-            st.caption("Data will reload every 5 minutes")
-
+        st.markdown("## 🔍 Filters")
         price_col = 'price_vehicle'
 
+        # Price range — use FULL data range
+        if price_col in df_raw.columns:
+            p_min = float(df_raw[price_col].min())
+            p_max = float(df_raw[price_col].max())
+            price_lo, price_hi = st.slider(
+                "Price Range (man-yen)", p_min, p_max, (p_min, p_max), step=10.0, key='price_slider')
+
+        # Year range — use FULL data range
+        year_lo, year_hi = None, None
+        if 'year_ce' in df_raw.columns:
+            yr_min = int(df_raw['year_ce'].min())
+            yr_max = int(df_raw['year_ce'].max())
+            year_lo, year_hi = st.slider(
+                "Model Year Range", yr_min, yr_max, (yr_min, yr_max), key='year_slider')
+
+        # Brand origin
+        sel_origins = None
+        if 'brand_origin' in df_raw.columns:
+            all_origins = sorted(df_raw['brand_origin'].dropna().unique().tolist())
+            sel_origins = st.multiselect("Brand Origin", all_origins, default=all_origins, key='origin_select')
+
+        # Vehicle class
+        sel_classes = None
+        if 'vehicle_class' in df_raw.columns:
+            all_classes = sorted(df_raw['vehicle_class'].dropna().unique().tolist())
+            sel_classes = st.multiselect("Vehicle Class", all_classes, default=all_classes, key='class_select')
+
+        # Apply ALL filters to df_raw → df
+        df = df_raw.copy()
         if price_col in df.columns:
-            price_min = float(df[price_col].min())
-            price_max = float(df[price_col].max())
-            price_range = st.slider("Price Range (man-yen)", price_min, price_max,
-                                    (price_min, price_max), step=10.0)
-            df = df[(df[price_col] >= price_range[0]) & (df[price_col] <= price_range[1])]
-
-        if 'year_ce' in df.columns:
-            year_min = int(df['year_ce'].min())
-            year_max = int(df['year_ce'].max())
-            year_range = st.slider("Model Year Range", year_min, year_max, (year_min, year_max))
-            df = df[(df['year_ce'] >= year_range[0]) & (df['year_ce'] <= year_range[1])]
-
-        if 'brand_origin' in df.columns:
-            brand_origins = df['brand_origin'].unique().tolist()
-            sel_origins = st.multiselect("Brand Origin", brand_origins, default=brand_origins)
+            df = df[(df[price_col] >= price_lo) & (df[price_col] <= price_hi)]
+        if year_lo is not None and 'year_ce' in df.columns:
+            df = df[(df['year_ce'] >= year_lo) & (df['year_ce'] <= year_hi)]
+        if sel_origins is not None and 'brand_origin' in df.columns:
             df = df[df['brand_origin'].isin(sel_origins)]
+        if sel_classes is not None and 'vehicle_class' in df.columns:
+            df = df[df['vehicle_class'].isin(sel_classes)]
 
         st.markdown("---")
-        st.caption(f"Filtered: {len(df)} vehicles")
+        st.caption(f"Showing {len(df):,} / {len(df_raw):,} vehicles")
+
+        if st.button("🔄 Reset Filters", use_container_width=True):
+            st.rerun()
 
     # ====== KPI ======
     render_kpi_cards(df)
@@ -621,12 +633,6 @@ def main():
         🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit
     </div>
     """, unsafe_allow_html=True)
-
-    # Auto-refresh logic
-    if auto_refresh:
-        time.sleep(300)
-        st.cache_data.clear()
-        st.rerun()
 
 
 if __name__ == "__main__":
