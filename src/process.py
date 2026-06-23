@@ -8,6 +8,7 @@ import sqlite3
 import re
 import sys
 import os
+from datetime import datetime
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -176,6 +177,11 @@ def process_data():
     conn = sqlite3.connect(DB_PATH)
     df.to_sql('used_cars_cleaned', conn, if_exists='replace', index=False)
     conn.close()
+
+    # Update last refresh timestamp
+    ts_file = os.path.join(os.path.dirname(DB_PATH), '.last_refresh')
+    with open(ts_file, 'w', encoding='utf-8') as f:
+        f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     print(f"\n=== Data Cleaning Complete ===")
     print(f"Records: {len(df)}")

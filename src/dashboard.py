@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 import os
+import sys
 from datetime import datetime
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -543,6 +544,27 @@ def main():
     with st.sidebar:
         st.markdown("## 🔍 Filters")
         price_col = 'price_vehicle'
+
+        # Show last refresh time + manual refresh
+        ts_file = os.path.join(PROJECT_ROOT, 'data', '.last_refresh')
+        if os.path.exists(ts_file):
+            with open(ts_file, 'r', encoding='utf-8') as f:
+                last_refresh = f.read().strip()
+            st.caption(f"🕐 Last data refresh: {last_refresh}")
+        else:
+            st.caption("🕐 Data not refreshed yet")
+
+        if st.button("🔄 Refresh Data Now", use_container_width=True, type="primary"):
+            with st.spinner("Crawling latest listings & reprocessing..."):
+                import subprocess
+                result = subprocess.run(
+                    [sys.executable, os.path.join(PROJECT_ROOT, 'src', 'refresh_data.py')],
+                    capture_output=True, text=True, encoding='utf-8',
+                    cwd=PROJECT_ROOT
+                )
+            st.cache_data.clear()
+            st.success("Data refreshed! Reloading...")
+            st.rerun()
 
         # Price range — use FULL data range
         if price_col in df_raw.columns:
