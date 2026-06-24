@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from update_crawler import crawl_incremental
 from process import process_data
+from macro_data_crawler import refresh_macro_data
 
 def refresh():
     print("=" * 50)
@@ -20,6 +21,12 @@ def refresh():
         process_data()
     else:
         print("\n📭 No new vehicles found, data is up to date")
+
+    # 宏观数据刷新 (JADA + K-car + MarkLines)
+    try:
+        refresh_macro_data()
+    except Exception as e:
+        print(f"\n⚠ Macro data refresh failed: {e}")
     
     ts_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', '.last_refresh')
     print(f"\n✅ Refresh complete. Next refresh recommended in 30 min.")

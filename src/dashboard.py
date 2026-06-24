@@ -93,14 +93,26 @@ def load_data():
 def load_macro_data():
     """加载宏观数据: 月度总销量 + 品牌别销量."""
     conn = sqlite3.connect(DB_PATH)
-    summary = pd.read_sql_query(
-        "SELECT * FROM japan_monthly_summary ORDER BY year, month", conn)
-    brand = pd.read_sql_query(
-        "SELECT * FROM new_car_sales_brand ORDER BY year, month", conn)
-    kcar_brand = pd.read_sql_query(
-        "SELECT * FROM kcar_brand_sales ORDER BY year, month", conn)
-    kcar_monthly = pd.read_sql_query(
-        "SELECT * FROM kcar_monthly_sales ORDER BY year, month", conn)
+    try:
+        summary = pd.read_sql_query(
+            "SELECT * FROM japan_monthly_summary ORDER BY year, month", conn)
+    except Exception:
+        summary = pd.DataFrame()
+    try:
+        brand = pd.read_sql_query(
+            "SELECT * FROM new_car_sales_brand ORDER BY year, month", conn)
+    except Exception:
+        brand = pd.DataFrame()
+    try:
+        kcar_brand = pd.read_sql_query(
+            "SELECT * FROM kcar_brand_sales ORDER BY year, month", conn)
+    except Exception:
+        kcar_brand = pd.DataFrame()
+    try:
+        kcar_monthly = pd.read_sql_query(
+            "SELECT * FROM kcar_monthly_sales ORDER BY year, month", conn)
+    except Exception:
+        kcar_monthly = pd.DataFrame()
     conn.close()
     return summary, brand, kcar_brand, kcar_monthly
 
