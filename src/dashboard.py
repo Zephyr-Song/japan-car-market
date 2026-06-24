@@ -89,6 +89,22 @@ def load_data():
     return df
 
 
+@st.cache_data(ttl=120)
+def load_macro_data():
+    """加载宏观数据: 月度总销量 + 品牌别销量."""
+    conn = sqlite3.connect(DB_PATH)
+    summary = pd.read_sql_query(
+        "SELECT * FROM japan_monthly_summary ORDER BY year, month", conn)
+    brand = pd.read_sql_query(
+        "SELECT * FROM new_car_sales_brand ORDER BY year, month", conn)
+    kcar_brand = pd.read_sql_query(
+        "SELECT * FROM kcar_brand_sales ORDER BY year, month", conn)
+    kcar_monthly = pd.read_sql_query(
+        "SELECT * FROM kcar_monthly_sales ORDER BY year, month", conn)
+    conn.close()
+    return summary, brand, kcar_brand, kcar_monthly
+
+
 def render_kpi_cards(df):
     price_col = 'price_vehicle'
     total = len(df)
@@ -522,6 +538,278 @@ def chart_forecast_demo(df):
     st.plotly_chart(fig2, use_container_width=True)
 
 
+# ===========================================================================
+# 宏观市场数据图表
+# ===========================================================================
+
+BRAND_NAME_MAP = {
+    'トヨタ': 'Toyota', 'ホンダ': 'Honda', '日産': 'Nissan',
+    'スズキ': 'Suzuki', 'ダイハツ': 'Daihatsu', 'マツダ': 'Mazda',
+    '三菱': 'Mitsubishi', 'ＳＵＢＡＲＵ': 'Subaru', 'スバル': 'Subaru',
+    'レクサス': 'Lexus', 'いすゞ': 'Isuzu', '日野': 'Hino',
+    '三菱ふそう': 'Fuso', 'UDトラックス': 'UD Trucks',
+    'Mercedes-Benz': 'Mercedes', 'BMW': 'BMW', 'VW': 'VW',
+    'Audi': 'Audi', 'BMW MINI': 'MINI', 'Volvo': 'Volvo',
+    'Porsche': 'Porsche', 'Jeep': 'Jeep', 'Peugeot': 'Peugeot',
+    'Land Rover': 'Land Rover', 'BYD': 'BYD', 'Fiat': 'Fiat',
+    'Citroen': 'Citroen', 'Renault': 'Renault', 'Alfa Romeo': 'Alfa Romeo',
+    'Ferrari': 'Ferrari', 'Hyundai': 'Hyundai', 'Lamborghini': 'Lamborghini',
+    'Maserati': 'Maserati', 'Bentley': 'Bentley', 'Cadillac': 'Cadillac',
+    'Aston Martin': 'Aston Martin', 'DS': 'DS', 'Ford': 'Ford',
+    'ABARTH': 'Abarth', 'Dodge': 'Dodge', 'Lotus': 'Lotus',
+    'ＭcＬaren': 'McLaren', 'Rolls Royce': 'Rolls Royce', 'Roｌｌs Royce': 'Rolls Royce',
+    'Chevrolet': 'Chevrolet', 'Scania': 'Scania', 'BMW Alpina': 'Alpina',
+}
+
+JAPANESE_BRANDS = {'Toyota', 'Honda', 'Nissan', 'Suzuki', 'Daihatsu', 'Mazda',
+                   'Mitsubishi', 'Subaru', 'Lexus', 'Isuzu', 'Hino', 'Fuso',
+                   'UD Trucks'}
+
+
+def chart_macro_monthly(summary):
+    """日本新车月度销量趋势."""
+    if summary.empty:
+        st.info("No macro data available. Run `macro_data_crawler.py` first.")
+        return
+
+    df = summary.copy()
+    df['period'] = df['year'].astype(str) + '/' + df['month'].astype(str).str.zfill(2)
+
+    # KPI cards
+    latest = df.sort_values(['year', 'month']).iloc[-1]
+    prev_month = df[df['year'] * 100 + df['month'] < latest['year'] * 100 + latest['month']].sort_values(['year', 'month'])
+    prev_month = prev_month.iloc[-1] if len(prev_month) > 0 else None
+
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        v = f"{latest['total_sales']:,.0f}" if pd.notna(latest['total_sales']) else 'N/A'
+        st.metric(f"📍 {int(latest['year'])}/{int(latest['month'])}月 总销量", v)
+    with k2:
+        v = f"{latest['registered_car_sales']:,.0f}" if pd.notna(latest['registered_car_sales']) else 'N/A'
+        st.metric("注册车 (非K-car)", v)
+    with k3:
+        v = f"{latest['kei_car_sales']:,.0f}" if pd.notna(latest['kei_car_sales']) else 'N/A'
+        st.metric("軽自動車 (K-car)", v)
+    with k4:
+        kei_pct = latest['kei_car_sales'] / latest['total_sales'] * 100 if pd.notna(latest['total_sales']) and latest['total_sales'] > 0 and pd.notna(latest['kei_car_sales']) else 0
+        st.metric("K-car 占比", f"{kei_pct:.1f}%")
+
+    st.markdown("---")
+
+    # --- 年份筛选 ---
+    all_years = sorted(df['year'].unique())
+    selected_years = st.multiselect("选择年份", all_years, default=all_years[-3:], key='macro_year')
+    df_sel = df[df['year'].isin(selected_years)] if selected_years else df
+
+    if df_sel.empty:
+        st.info("No data for selected years.")
+        return
+
+    # --- 堆叠面积图: 注册车 + K-car ---
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_sel['period'], y=df_sel['registered_car_sales'],
+        mode='lines+markers', name='Registered Cars',
+        line=dict(color='#1a73e8', width=2.5),
+        marker=dict(size=6),
+        stackgroup='one',
+        hovertemplate='%{x}<br>Registered: %{y:,.0f}<extra></extra>',
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_sel['period'], y=df_sel['kei_car_sales'],
+        mode='lines+markers', name='K-car (軽自動車)',
+        line=dict(color='#ea4335', width=2.5),
+        marker=dict(size=6),
+        stackgroup='one',
+        hovertemplate='%{x}<br>K-car: %{y:,.0f}<extra></extra>',
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_sel['period'], y=df_sel['total_sales'],
+        mode='lines+markers', name='Total',
+        line=dict(color='#34a853', width=3, dash='dot'),
+        marker=dict(size=7, symbol='diamond'),
+        hovertemplate='%{x}<br>Total: %{y:,.0f}<extra></extra>',
+    ))
+    fig.update_layout(
+        title="🇯🇵 Monthly New Car Sales — Registered + K-car",
+        xaxis_title="Month", yaxis_title="Units Sold",
+        hovermode="x unified", height=500,
+        legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='right', x=1),
+    )
+    fig.update_xaxes(tickangle=45)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # --- 同比增长率 ---
+    df_yoy = df_sel[df_sel['kei_yoy_pct'].notna()].copy()
+    if len(df_yoy) > 0:
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(
+            x=df_yoy['period'], y=df_yoy['kei_yoy_pct'],
+            name='K-car YoY %',
+            marker_color=df_yoy['kei_yoy_pct'].apply(lambda x: '#34a853' if x >= 0 else '#ea4335'),
+            hovertemplate='%{x}<br>YoY: %{y:.1f}%<extra></extra>',
+        ))
+        fig2.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1)
+        fig2.update_layout(
+            title="K-car Year-over-Year Growth (%)",
+            xaxis_title="Month", yaxis_title="YoY %",
+            hovermode="x unified", height=350,
+        )
+        fig2.update_xaxes(tickangle=45)
+        st.plotly_chart(fig2, use_container_width=True)
+
+
+def chart_macro_brand(brand_df):
+    """品牌别新车销量排名."""
+    if brand_df.empty:
+        st.info("No brand data available.")
+        return
+
+    df = brand_df.copy()
+    # 英译品牌名
+    df['brand_en'] = df['brand'].map(BRAND_NAME_MAP).fillna(df['brand'])
+    df['is_jp'] = df['brand_en'].isin(JAPANESE_BRANDS)
+
+    # 选年月
+    all_ym = sorted(df.apply(lambda r: f"{int(r['year'])}/{int(r['month']):02d}", axis=1).unique())
+    selected_ym = st.selectbox("选择月份", all_ym, index=len(all_ym) - 1, key='macro_brand_ym')
+    ym_parts = selected_ym.split('/')
+    sel_y, sel_m = int(ym_parts[0]), int(ym_parts[1])
+    df_m = df[(df['year'] == sel_y) & (df['month'] == sel_m)]
+
+    # 品牌总销量 (登録車 + 軽)
+    brand_total = df_m.groupby(['brand_en', 'is_jp'])['sales_count'].sum().reset_index()
+    brand_total = brand_total.sort_values('sales_count', ascending=False)
+    top15 = brand_total.head(15)
+
+    # KPI
+    total_all = brand_total['sales_count'].sum()
+    jp_total = brand_total[brand_total['is_jp']]['sales_count'].sum()
+    import_total = brand_total[~brand_total['is_jp']]['sales_count'].sum()
+    k1, k2, k3 = st.columns(3)
+    with k1: st.metric("🇯🇵 日本品牌", f"{jp_total:,.0f}", f"{jp_total/total_all*100:.1f}%")
+    with k2: st.metric("🌍 进口品牌", f"{import_total:,.0f}", f"{import_total/total_all*100:.1f}%")
+    with k3: st.metric("📊 品牌数", f"{len(brand_total)}")
+
+    st.markdown("---")
+
+    # 横向条形图
+    fig = px.bar(top15, x='sales_count', y='brand_en', orientation='h',
+                 color='is_jp', color_discrete_map={True: '#1a73e8', False: '#ea4335'},
+                 title=f"{sel_y}/{sel_m:02d} Top 15 Brands by Sales",
+                 labels={'sales_count': 'Units Sold', 'brand_en': 'Brand', 'is_jp': 'Japanese'},
+                 height=500)
+    fig.update_layout(yaxis={'categoryorder': 'total ascending'}, showlegend=True)
+    # 添加数值标签
+    for trace in fig.data:
+        trace.textposition = 'outside'
+    st.plotly_chart(fig, use_container_width=True)
+
+    # 注册车 vs K-car 分拆
+    df_split = df_m.groupby('brand_en').agg(
+        reg=('sales_count', lambda x: x[df_m.loc[x.index, 'vehicle_type'].str.contains('登録車')].sum()),
+        kei=('sales_count', lambda x: x[df_m.loc[x.index, 'vehicle_type'].str.contains('軽')].sum()),
+    ).reset_index().sort_values('reg', ascending=False).head(10)
+
+    if not df_split.empty and df_split['kei'].sum() > 0:
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(
+            y=df_split['brand_en'], x=df_split['reg'], orientation='h',
+            name='Registered', marker_color='#1a73e8',
+            hovertemplate='%{y}: %{x:,.0f}<extra></extra>',
+        ))
+        fig2.add_trace(go.Bar(
+            y=df_split['brand_en'], x=df_split['kei'], orientation='h',
+            name='K-car', marker_color='#ea4335',
+            hovertemplate='%{y}: %{x:,.0f}<extra></extra>',
+        ))
+        fig2.update_layout(
+            barmode='stack',
+            title=f"{sel_y}/{sel_m:02d} Top 10 — Registered vs K-car",
+            xaxis_title='Units Sold', yaxis_title='',
+            height=450,
+            yaxis={'categoryorder': 'total ascending'},
+            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='right', x=1),
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+
+def chart_macro_kcar(kcar_brand_df, kcar_monthly_df):
+    """K-car 品牌别份额 + 月度趋势."""
+    if kcar_brand_df.empty and kcar_monthly_df.empty:
+        st.info("No K-car data available.")
+        return
+
+    tab_a, tab_b = st.tabs(["🥧 Brand Share", "📈 Monthly Trend"])
+
+    with tab_a:
+        if kcar_brand_df.empty:
+            st.info("No K-car brand data.")
+        else:
+            df = kcar_brand_df.copy()
+            # 英译
+            df['brand_en'] = df['brand'].map(BRAND_NAME_MAP).fillna(df['brand'])
+            all_ym = sorted(df.apply(lambda r: f"{int(r['year'])}/{int(r['month']):02d}", axis=1).unique())
+            selected_ym = st.selectbox("选择月份", all_ym, index=len(all_ym) - 1, key='kcar_brand_ym')
+            ym_parts = selected_ym.split('/')
+            sel_y, sel_m = int(ym_parts[0]), int(ym_parts[1])
+            df_m = df[(df['year'] == sel_y) & (df['month'] == sel_m)]
+
+            if df_m.empty:
+                st.info("No data for selected month.")
+            else:
+                fig = px.pie(df_m, values='total_count', names='brand_en',
+                             title=f"K-car Brand Share — {sel_y}/{sel_m:02d}",
+                             hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
+                fig.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig, use_container_width=True)
+
+                # 同比表
+                df_show = df_m[['brand_en', 'total_count', 'market_share_pct', 'yoy_pct']].copy()
+                df_show.columns = ['Brand', 'Sales', 'Share %', 'YoY %']
+                df_show = df_show.sort_values('Sales', ascending=False)
+                st.dataframe(df_show, use_container_width=True, hide_index=True)
+
+    with tab_b:
+        if kcar_monthly_df.empty:
+            st.info("No K-car monthly data.")
+        else:
+            df = kcar_monthly_df.copy()
+            df['period'] = df['year'].astype(str) + '/' + df['month'].astype(str).str.zfill(2)
+
+            # 乘客 vs 货物
+            fig = go.Figure()
+            if 'passenger_group_total' in df.columns:
+                fig.add_trace(go.Scatter(
+                    x=df['period'], y=df['passenger_group_total'],
+                    mode='lines+markers', name='Passenger',
+                    line=dict(color='#1a73e8', width=2.5),
+                    hovertemplate='%{x}<br>Passenger: %{y:,.0f}<extra></extra>',
+                ))
+            if 'cargo_group_total' in df.columns:
+                fig.add_trace(go.Scatter(
+                    x=df['period'], y=df['cargo_group_total'],
+                    mode='lines+markers', name='Cargo',
+                    line=dict(color='#ea4335', width=2.5),
+                    hovertemplate='%{x}<br>Cargo: %{y:,.0f}<extra></extra>',
+                ))
+            fig.add_trace(go.Scatter(
+                x=df['period'], y=df['total'],
+                mode='lines+markers', name='Total',
+                line=dict(color='#34a853', width=3, dash='dot'),
+                marker=dict(symbol='diamond', size=7),
+                hovertemplate='%{x}<br>Total: %{y:,.0f}<extra></extra>',
+            ))
+            fig.update_layout(
+                title="K-car Monthly Sales — Passenger vs Cargo",
+                xaxis_title="Month", yaxis_title="Units Sold",
+                hovermode="x unified", height=450,
+                legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='right', x=1),
+            )
+            fig.update_xaxes(tickangle=45)
+            st.plotly_chart(fig, use_container_width=True)
+
+
 def main():
     st.markdown("""
     <div style="text-align:center; padding: 12px 0;">
@@ -615,10 +903,10 @@ def main():
     st.markdown("<div class='gradient-divider'></div>", unsafe_allow_html=True)
 
     # ====== Tabs ======
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "💰 Price", "🏭 Brands", "📊 Scatter",
         "🚙 Vehicle Class", "📈 Year Trend", "🔮 Forecast",
-        "🗺️ Region"
+        "🗺️ Region", "🇯🇵 Macro Market"
     ])
 
     with tab1:
@@ -649,10 +937,25 @@ def main():
         st.markdown('<div class="section-title">Regional Price Analysis</div>', unsafe_allow_html=True)
         chart_prefecture(df)
 
+    with tab8:
+        st.markdown('<div class="section-title">🇯🇵 Japan Macro Market — New Car Sales</div>', unsafe_allow_html=True)
+        st.caption("Data: JADA (品牌別登録車) + 全軽自協 (K-car) · Updated monthly")
+        summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
+
+        macro_tab1, macro_tab2, macro_tab3 = st.tabs([
+            "📈 Monthly Total", "🏭 Brand Ranking", "🚗 K-car"
+        ])
+        with macro_tab1:
+            chart_macro_monthly(summary)
+        with macro_tab2:
+            chart_macro_brand(brand_df)
+        with macro_tab3:
+            chart_macro_kcar(kcar_brand_df, kcar_monthly_df)
+
     st.markdown("""
     <div class="gradient-divider"></div>
     <div style="text-align:center; color:#5f6368; font-size:0.85em; padding:12px 0;">
-        🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit
+        🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net + JADA + 全軽自協 · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit
     </div>
     """, unsafe_allow_html=True)
 
