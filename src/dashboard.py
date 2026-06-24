@@ -80,11 +80,16 @@ st.markdown("""
 
 @st.cache_data(ttl=60)
 def load_data():
+    if not os.path.exists(DB_PATH):
+        return pd.DataFrame()
     conn = sqlite3.connect(DB_PATH)
     try:
         df = pd.read_sql_query("SELECT * FROM used_cars_cleaned", conn)
     except Exception:
-        df = pd.read_sql_query("SELECT * FROM used_cars", conn)
+        try:
+            df = pd.read_sql_query("SELECT * FROM used_cars", conn)
+        except Exception:
+            df = pd.DataFrame()
     conn.close()
     return df
 
@@ -836,8 +841,24 @@ def main():
 
     # Load raw data ONCE
     df_raw = load_data()
-    if len(df_raw) == 0:
-        st.warning("No data available. Run `python src/crawler.py` first.")
+    has_used_car_data = len(df_raw) > 0
+
+    if not has_used_car_data:
+        st.warning("⚠️ 二手车数据库为空，部分功能不可用。请运行 `python src/crawler.py` 采集数据，或点击下方按钮刷新。")
+        # 仍然展示宏观数据
+        summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
+        if not summary.empty or not brand_df.empty:
+            st.markdown('<div class="section-title">🇯🇵 Japan Macro Market — New Car Sales</div>', unsafe_allow_html=True)
+            st.caption("Data: JADA (品牌別登録車) + 全軽自協 (K-car) · Updated monthly")
+            macro_tab1, macro_tab2, macro_tab3 = st.tabs([
+                "📈 Monthly Total", "🏭 Brand Ranking", "🚗 K-car"
+            ])
+            with macro_tab1:
+                chart_macro_monthly(summary)
+            with macro_tab2:
+                chart_macro_brand(brand_df)
+            with macro_tab3:
+                chart_macro_kcar(kcar_brand_df, kcar_monthly_df)
         return
 
     # ====== Sidebar Filters (use df_raw for range, filter into df) ======
