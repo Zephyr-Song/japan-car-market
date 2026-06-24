@@ -4,6 +4,6 @@ __pycache__/
 .env
 .venv/
 node_modules/
-*.db
-data/japan_car_market.db
+# *.db  -- allow db for Streamlit Cloud
+# data/japan_car_market.db
 data/cleaned_*.csv
