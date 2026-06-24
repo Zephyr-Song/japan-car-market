@@ -614,24 +614,21 @@ def chart_macro_monthly(summary):
     st.markdown("---")
 
     # --- 年份筛选 ---
-    # 只展示有完整数据的年份
-    complete_years = sorted(df_sel[df_sel['has_reg']]['year'].unique())
-    all_years = sorted(df_sel['year'].unique())
+    # 先标记数据完整性
+    df_tagged = df.copy()
+    df_tagged['has_reg'] = df_tagged['registered_car_sales'].fillna(0) > 0
+    complete_years = sorted(df_tagged[df_tagged['has_reg']]['year'].unique())
+    all_years = sorted(df_tagged['year'].unique())
     available_years = complete_years if complete_years else all_years
     selected_years = st.multiselect("选择年份", available_years, default=available_years[-3:], key='macro_year')
-    df_sel = df[df['year'].isin(selected_years)] if selected_years else df
+    df_sel = df_tagged[df_tagged['year'].isin(selected_years)] if selected_years else df_tagged
 
     if df_sel.empty:
         st.info("No data for selected years.")
         return
 
-    # 标记数据完整性：注册车=0 说明只有K-car数据
-    df_sel = df_sel.copy()
-    df_sel['has_reg'] = df_sel['registered_car_sales'].fillna(0) > 0
-    df_complete = df_sel[df_sel['has_reg']]
-    df_kcar_only = df_sel[~df_sel['has_reg']]
-
     # 只展示有完整数据的月份（注册车>0）
+    df_complete = df_sel[df_sel['has_reg']]
     df_plot = df_complete if len(df_complete) > 0 else df_sel
 
     # --- 堆叠面积图: 注册车 + K-car ---
