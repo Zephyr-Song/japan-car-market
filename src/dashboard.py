@@ -614,8 +614,11 @@ def chart_macro_monthly(summary):
     st.markdown("---")
 
     # --- 年份筛选 ---
-    all_years = sorted(df['year'].unique())
-    selected_years = st.multiselect("选择年份", all_years, default=all_years[-3:], key='macro_year')
+    # 只展示有完整数据的年份
+    complete_years = sorted(df_sel[df_sel['has_reg']]['year'].unique())
+    all_years = sorted(df_sel['year'].unique())
+    available_years = complete_years if complete_years else all_years
+    selected_years = st.multiselect("选择年份", available_years, default=available_years[-3:], key='macro_year')
     df_sel = df[df['year'].isin(selected_years)] if selected_years else df
 
     if df_sel.empty:
@@ -628,11 +631,8 @@ def chart_macro_monthly(summary):
     df_complete = df_sel[df_sel['has_reg']]
     df_kcar_only = df_sel[~df_sel['has_reg']]
 
-    if len(df_kcar_only) > 0 and len(df_complete) > 0:
-        st.caption("⚠️ 2020-2021 年仅有 K-car 数据（无注册车），图表从 2022 年起展示完整数据")
-        df_plot = df_complete
-    else:
-        df_plot = df_sel
+    # 只展示有完整数据的月份（注册车>0）
+    df_plot = df_complete if len(df_complete) > 0 else df_sel
 
     # --- 堆叠面积图: 注册车 + K-car ---
     fig = go.Figure()
@@ -667,24 +667,6 @@ def chart_macro_monthly(summary):
     )
     fig.update_xaxes(tickangle=45)
     st.plotly_chart(fig, use_container_width=True)
-
-    # --- 如果有不完整数据，单独显示K-car趋势 ---
-    if len(df_kcar_only) > 0:
-        fig_kcar = go.Figure()
-        fig_kcar.add_trace(go.Scatter(
-            x=df_kcar_only['period'], y=df_kcar_only['kei_car_sales'],
-            mode='lines+markers', name='K-car Only',
-            line=dict(color='#ea4335', width=2),
-            marker=dict(size=5),
-            hovertemplate='%{x}<br>K-car: %{y:,.0f}<extra></extra>',
-        ))
-        fig_kcar.update_layout(
-            title="K-car Sales (2020-2021, registered car data unavailable)",
-            xaxis_title="Month", yaxis_title="Units Sold",
-            hovermode="x unified", height=300,
-        )
-        fig_kcar.update_xaxes(tickangle=45)
-        st.plotly_chart(fig_kcar, use_container_width=True)
 
     # --- 同比增长率 ---
     df_yoy = df_sel[df_sel['kei_yoy_pct'].notna()].copy()
