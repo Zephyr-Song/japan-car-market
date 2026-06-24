@@ -622,10 +622,22 @@ def chart_macro_monthly(summary):
         st.info("No data for selected years.")
         return
 
+    # 标记数据完整性：注册车=0 说明只有K-car数据
+    df_sel = df_sel.copy()
+    df_sel['has_reg'] = df_sel['registered_car_sales'].fillna(0) > 0
+    df_complete = df_sel[df_sel['has_reg']]
+    df_kcar_only = df_sel[~df_sel['has_reg']]
+
+    if len(df_kcar_only) > 0 and len(df_complete) > 0:
+        st.caption("⚠️ 2020-2021 年仅有 K-car 数据（无注册车），图表从 2022 年起展示完整数据")
+        df_plot = df_complete
+    else:
+        df_plot = df_sel
+
     # --- 堆叠面积图: 注册车 + K-car ---
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=df_sel['period'], y=df_sel['registered_car_sales'],
+        x=df_plot['period'], y=df_plot['registered_car_sales'],
         mode='lines+markers', name='Registered Cars',
         line=dict(color='#1a73e8', width=2.5),
         marker=dict(size=6),
@@ -633,7 +645,7 @@ def chart_macro_monthly(summary):
         hovertemplate='%{x}<br>Registered: %{y:,.0f}<extra></extra>',
     ))
     fig.add_trace(go.Scatter(
-        x=df_sel['period'], y=df_sel['kei_car_sales'],
+        x=df_plot['period'], y=df_plot['kei_car_sales'],
         mode='lines+markers', name='K-car (軽自動車)',
         line=dict(color='#ea4335', width=2.5),
         marker=dict(size=6),
@@ -641,7 +653,7 @@ def chart_macro_monthly(summary):
         hovertemplate='%{x}<br>K-car: %{y:,.0f}<extra></extra>',
     ))
     fig.add_trace(go.Scatter(
-        x=df_sel['period'], y=df_sel['total_sales'],
+        x=df_plot['period'], y=df_plot['total_sales'],
         mode='lines+markers', name='Total',
         line=dict(color='#34a853', width=3, dash='dot'),
         marker=dict(size=7, symbol='diamond'),
@@ -655,6 +667,24 @@ def chart_macro_monthly(summary):
     )
     fig.update_xaxes(tickangle=45)
     st.plotly_chart(fig, use_container_width=True)
+
+    # --- 如果有不完整数据，单独显示K-car趋势 ---
+    if len(df_kcar_only) > 0:
+        fig_kcar = go.Figure()
+        fig_kcar.add_trace(go.Scatter(
+            x=df_kcar_only['period'], y=df_kcar_only['kei_car_sales'],
+            mode='lines+markers', name='K-car Only',
+            line=dict(color='#ea4335', width=2),
+            marker=dict(size=5),
+            hovertemplate='%{x}<br>K-car: %{y:,.0f}<extra></extra>',
+        ))
+        fig_kcar.update_layout(
+            title="K-car Sales (2020-2021, registered car data unavailable)",
+            xaxis_title="Month", yaxis_title="Units Sold",
+            hovermode="x unified", height=300,
+        )
+        fig_kcar.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_kcar, use_container_width=True)
 
     # --- 同比增长率 ---
     df_yoy = df_sel[df_sel['kei_yoy_pct'].notna()].copy()
