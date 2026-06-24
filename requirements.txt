@@ -4,3 +4,8 @@ plotly
 matplotlib
 streamlit
 prophet
+requests
+openpyxl
+xlrd
+beautifulsoup4
+lxml
