@@ -1,11 +1,14 @@
 # 🇯🇵 日本二手车市场智能分析系统
 
 [![Data Source](https://img.shields.io/badge/数据源-carsensor.net-blue)](https://www.carsensor.net/usedcar/)
-[![Data Count](https://img.shields.io/badge/采集数据-942台车-green)]()
+[![Data Count](https://img.shields.io/badge/采集数据-968台车-green)]()
 [![Python](https://img.shields.io/badge/Python-3.10+-yellow)]()
-[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B)]()
+[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B)](https://japan-car-market.streamlit.app)
+[![Open Dashboard](https://img.shields.io/badge/🚀_打开仪表盘-Online-success)](https://japan-car-market.streamlit.app)
 
 > 动态监控日本二手车市场价格、品牌分布以及市场变化趋势
+>
+> **🚀 [在线仪表盘 →](https://japan-car-market.streamlit.app)**
 
 ## 🔍 市场调查概要
 
@@ -155,13 +158,13 @@ python src/analyze.py
 streamlit run src/dashboard.py
 ```
 
-Dashboard 包含 6 个分析模块：
+Dashboard 包含 8 个分析模块：
 - 💰 **价格分析** — 直方图 + 动态区间统计
 - 🏭 **品牌分析** — 箱线图 + 旭日图市场份额
 - 🚙 **车辆级别** — K-car 专题深度分析
 - 📈 **年式趋势** — P25-P75 区间 + 数据量热力
 - 🗺️ **地区分析** — 都道府县均价排名
-- 📋 **数据探索** — 可筛选数据表
+- 🇯🇵 **宏观市场** — 新车月度总销量、品牌排名、K-car 份额（数据: JADA + 全軽自協）
 
 ---
 
