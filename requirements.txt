@@ -3,7 +3,7 @@ pandas
 plotly
 matplotlib
 streamlit
-prophet
+scikit-learn
 requests
 openpyxl
 xlrd
