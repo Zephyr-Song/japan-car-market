@@ -1,8 +1,9 @@
 # 🇯🇵 日本汽车市场智能分析系统
 # Japan Automobile Market Intelligence Platform
 
-[![Data Source](https://img.shields.io/badge/数据源-Carsensor.net-blue)](https://www.carsensor.net/usedcar/)
-[![Macro Data](https://img.shields.io/badge/宏观数据-JADA+%E5%85%A8%E8%BD%BB%E8%87%AA%E5%8A%A8%E5%8D%8F-green)]()
+[![Data Source](https://img.shields.io/badge/数据源1-carsensor.net-blue)](https://www.carsensor.net/usedcar/)
+[![Data Source](https://img.shields.io/badge/数据源2-goo--net.com-orange)](https://www.goo-net.com/usedcar/)
+[![Macro Data](https://img.shields.io/badge/宏观统计-JADA+全軽自協+MLIT+JAIA-red)]()
 [![Python](https://img.shields.io/badge/Python-3.10+-yellow)]()
 [![Dashboard](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B)]()
 [![License](https://img.shields.io/badge/License-MIT-blue)]()
@@ -302,17 +303,32 @@ streamlit run src/dashboard.py
 
 ---
 
+## 📊 数据源
+
+| 数据源 | 类型 | 说明 | 模块 |
+|--------|------|------|------|
+| **[carsensor.net](https://www.carsensor.net)** | 二手车挂牌 | 日本最大二手车平台 (月访问 3580万, ~30万挂牌) | `src/crawler.py` |
+| **[goo-net.com](https://www.goo-net.com)** | 二手车挂牌 | 日本第二大二手车平台 (月访问 2400万, ~50万挂牌), 含 FOB 出口价 | `src/crawler_goonet.py` |
+| **[JADA](https://www.jada.or.jp)** | 新车销量 | 日本自動車販売協会連合会, 品牌别注册车月销量 | `src/macro_data_crawler.py` |
+| **[全軽自協](https://www.zenkeijikyo.or.jp)** | K-car 统计 | 全国軽自動車協会連合会, 轻自动车月别推移 + 品牌别速报 | `src/macro_data_crawler.py` |
+| **[JAIA](https://www.jaia-jp.org)** | 进口车 | 日本自動車輸入組合, 进口车品牌别销量 | `src/crawler_official.py` |
+| **[MLIT / e-Stat](https://www.e-stat.go.jp)** | 官方统计 | 国土交通省保有車両数 + 政府統計総合窓口 | `src/crawler_official.py` |
+
+双平台数据合并: 两个二手车源去重合并至 `used_cars` 表, 扩大样本覆盖至万级。
+
+---
+
 ## ⚠️ 已知局限
 
 | 局限 | 说明 |
 |------|------|
 | 标价 ≠ 成交价 | 日本二手车通常有 5~15% 议价空间 |
 | 单日快照 | 每次采集为单日数据，需持续采集构建时间序列 |
-| 数据量 | 单次约 1,000 台，carsensor.net 全站约 30 万台 |
-| 反爬限制 | 请求过快触发限流 |
+| 数据量 | 单次约 1,000 台（carsensor），goo-net 可补充至万级 |
+| 预测精度 | 截面回归模型受限于可用特征，车型级别数据需更多样本 |
+| 反爬限制 | 请求过快触发限流/超时，goo-net 反爬较严 |
+| K-car 数据 | 轻自动车数据主要来自全軽自協，carsensor 抓取量偏少 |
 | JAIA 进口数据 | SSL 证书问题，暂未自动入库 |
-
----
 
 ## 📄 License
 
