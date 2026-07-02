@@ -1,0 +1,98 @@
+[
+  {
+    "origin": "上海/宁波",
+    "dest": "名古屋",
+    "distance_km": 1763,
+    "cost_low": 170,
+    "cost_high": 229,
+    "sailing_days": 2.5
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "东京/横浜",
+    "distance_km": 2070,
+    "cost_low": 170,
+    "cost_high": 229,
+    "sailing_days": 3.0
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "大阪/神戸",
+    "distance_km": 1569,
+    "cost_low": 170,
+    "cost_high": 229,
+    "sailing_days": 2.2
+  },
+  {
+    "origin": "广州/深圳",
+    "dest": "博多（九州）",
+    "distance_km": 2465,
+    "cost_low": 170,
+    "cost_high": 229,
+    "sailing_days": 3.5
+  },
+  {
+    "origin": "天津",
+    "dest": "东京/横浜",
+    "distance_km": 2380,
+    "cost_low": 170,
+    "cost_high": 229,
+    "sailing_days": 3.4
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "曼谷/林查班（泰国）",
+    "distance_km": 3669,
+    "cost_low": 218,
+    "cost_high": 295,
+    "sailing_days": 5.2
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "鹿特丹（荷兰）",
+    "distance_km": 12079,
+    "cost_low": 718,
+    "cost_high": 972,
+    "sailing_days": 17.3
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "汉堡（德国）",
+    "distance_km": 11536,
+    "cost_low": 686,
+    "cost_high": 928,
+    "sailing_days": 16.5
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "桑托斯（巴西）",
+    "distance_km": 27885,
+    "cost_low": 1659,
+    "cost_high": 2244,
+    "sailing_days": 39.8
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "吉达（沙特）",
+    "distance_km": 10564,
+    "cost_low": 628,
+    "cost_high": 850,
+    "sailing_days": 15.1
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "雅加达/丹戎不碌（印尼）",
+    "distance_km": 5549,
+    "cost_low": 330,
+    "cost_high": 446,
+    "sailing_days": 7.9
+  },
+  {
+    "origin": "上海/宁波",
+    "dest": "悉尼（澳大利亚）",
+    "distance_km": 9441,
+    "cost_low": 561,
+    "cost_high": 760,
+    "sailing_days": 13.5
+  }
+]
