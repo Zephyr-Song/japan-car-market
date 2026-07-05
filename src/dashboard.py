@@ -1398,6 +1398,12 @@ def chart_import_export():
 
     conn.close()
 
+    # Apply translations to export_statistics (jumv.net data has JP shape_name & country_name)
+    if not export_df.empty:
+        export_df['shape_name'] = export_df['shape_name'].apply(translate_shape)
+        if 'country_name' in export_df.columns:
+            export_df['country_name'] = export_df['country_name'].apply(translate_country)
+
     # Translation maps: DB values (mixed CN/JP) -> English display
     region_map = {
         # Chinese
