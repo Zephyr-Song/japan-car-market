@@ -1,4 +1,4 @@
-"""
+﻿"""
 日本汽车市场宏观数据补充爬虫 v2
 数据源:
   1. JADA - 品牌别注册车销量 (Excel .xls, multi-sheet)
@@ -900,7 +900,7 @@ def refresh_macro_data():
     print(f"数据库: {DB_PATH}")
     print("=" * 60)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     try:
         init_tables(conn)
 

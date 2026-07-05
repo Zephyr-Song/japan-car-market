@@ -1,9 +1,22 @@
-__pycache__/
-*.pyc
-*.pyo
-.env
-.venv/
-node_modules/
-# *.db  -- allow db for Streamlit Cloud
-# data/japan_car_market.db
-data/cleaned_*.csv
+# .gitignore - 临时调试文件
+*.png
+*_debug*
+debug_*
+check_*
+db_status*
+export_db*
+find_boundary*
+fix_*
+make_pdf*
+query_*
+screenshot_*
+test_chart*
+test_chart_logic*
+verify_dashboard*
+check_db.py
+check_db_simple.py
+check_detail.py
+check_health.py
+2020
+启动仪表盘.bat
+run_dashboard.bat

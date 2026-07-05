@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data Cleaning & Processing Module
 Converts raw crawled data into analysis-ready format with English labels
 """
@@ -59,7 +59,7 @@ JAPANESE_TO_ENGLISH_PREFECTURE = {
 
 
 def load_data():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     df = pd.read_sql_query("SELECT * FROM used_cars", conn)
     conn.close()
     print(f"Loaded raw data: {len(df)} records")
@@ -174,7 +174,7 @@ def process_data():
     df['brand_origin'] = df['brand_clean'].apply(classify_brand_origin)
     df['prefecture'] = df['prefecture'].apply(clean_prefecture)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     df.to_sql('used_cars_cleaned', conn, if_exists='replace', index=False)
     conn.close()
 

@@ -152,7 +152,8 @@ def insert_cars(conn, cars, crawl_date, category=""):
 
 def crawl_incremental():
     """Incremental crawl — only first few pages, INSERT OR IGNORE existing"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")
     ensure_table(conn)
     crawl_date = datetime.now().strftime("%Y-%m-%d")
     total_new = 0
