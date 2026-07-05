@@ -1,0 +1,35 @@
+L563:     'トヨタ': 'Toyota', 'ホンダ': 'Honda', '日産': 'Nissan',
+L564:     'スズキ': 'Suzuki', 'ダイハツ': 'Daihatsu', 'マツダ': 'Mazda',
+L565:     '三菱': 'Mitsubishi', 'ＳＵＢＡＲＵ': 'Subaru', 'スバル': 'Subaru',
+L566:     'レクサス': 'Lexus', 'いすゞ': 'Isuzu', '日野': 'Hino',
+L567:     '三菱ふそう': 'Fuso', 'UDトラックス': 'UD Trucks',
+L582: SHAPE_MAP = {'普通車': 'Standard Car', 'ハイブリッド': 'Hybrid', '電気自動車': 'EV', '軽自動車': 'Kei Car', 'トラック': 'Truck', 'バス': 'Bus'}
+L583: COUNTRY_MAP = {'アイルランド': 'Ireland', 'アメリカ': 'USA', 'アラブ首長国連邦': 'UAE', 'アルメニア': 'Armenia', 'アンギラ': 'Anguilla', 'アンティグア・バーブーダ': 'Antigua & Barbuda', 'イギ
+L584: BODY_TYPE_MAP = {'軽自動車': 'Kei Car', 'ミニバン/ワンボックス': 'Minivan/Onebox', 'コンパクト/ハッチバック': 'Compact/Hatchback', '軽バン/軽ワゴン': 'Kei Van/Wagon', 'セダン/ハードトップ': '
+L585: MODEL_MAP = {'プリウス': 'Prius', 'セレナ': 'Serena', 'N-BOXカスタム': 'N-BOX Custom', 'ステップワゴン': 'Step Wagon', 'N-BOX': 'N-BOX', 'タント': 'Tanto', 'タントカスタム': 'Tan
+L586: BRAND_MAP_JP = {'トヨタ': 'Toyota', '日産': 'Nissan', 'ホンダ': 'Honda', 'ダイハツ': 'Daihatsu', 'スズキ': 'Suzuki', 'BMW MINI': 'BMW Mini', 'フィアット': 'Fiat', 'フォルクスワ
+L634:         st.metric(f"📍 {int(latest['year'])}/{int(latest['month'])}月 总销量", v)
+L647:     # --- 年份筛选 ---
+L648:     # 先标记数据完整性
+L661:     # 只展示有完整数据的月份（注册车>0）
+L665:     # --- 堆叠面积图: 注册车 + K-car ---
+L699:     # --- 同比增长率 ---
+L747:     with k1: st.metric("🇯🇵 日本品牌", f"{jp_total:,.0f}", f"{jp_total/total_all*100:.1f}%")
+L748:     with k2: st.metric("🌍 进口品牌", f"{import_total:,.0f}", f"{import_total/total_all*100:.1f}%")
+L749:     with k3: st.metric("📊 品牌数", f"{len(brand_total)}")
+L903:         st.metric("📦 二手车总量", f"{total_used:,}", f"+{new_listings} 最新批次")
+L905:         st.metric("🕐 最新爬取", latest_crawl[0] or "N/A")
+L907:         st.metric("🇯🇵 行业数据", f"{macro_latest[0]}/{macro_latest[1]:02d}" if macro_latest[0] else "N/A")
+L909:         st.metric("🏭 新车品牌数", f"{total_brands_macro}")
+L911:         st.metric("🚗 K-car 品牌数", f"{kcar_brand_cnt}")
+L915:         st.caption(f"📋 最近 {len(crawl_recent)} 次爬取: " + " | ".join([f"{d}: {c}辆" for d, c in crawl_recent]))
+L922:     tab_a, tab_b = st.tabs(["⛽ 动力类型", "🔧 变速箱"])
+L975:         cat_stats.columns = ['Count', 'Avg Price', 'Median Price', 'Min Price', 'Max Price', 'Avg Mileage (万km)']
+L1094:             labels={'mileage_wan_km': 'Mileage (万km)', price_col: 'Price (man-yen)'},
+L1104:         st.markdown("#### 📏 排量分布对比")
+L1145:     """加载jumv.net出口统计数据"""
+L1159:     """加载 Kurumaerabi 市场报告数据"""
+L1175:     """日本中古车出口统计 (jumv.net)"""
+L1258:     """Kurumaerabi 月次市场报告"""
+L1897:         st.warning("⚠️ 二手车数据库为空，部分功能不可用。请运行 `python src/crawler.py` 采集数据，或点击下方按钮刷新。")
+L1898:         # 仍然展示宏观数据

@@ -631,7 +631,7 @@ def chart_macro_monthly(summary):
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         v = f"{latest['total_sales']:,.0f}" if pd.notna(latest['total_sales']) else 'N/A'
-        st.metric(f"📍 {int(latest['year'])}/{int(latest['month'])}月 总销量", v)
+        st.metric(f"Latest: {int(latest['year'])}/{int(latest['month']):02d} Total", v)
     with k2:
         v = f"{latest['registered_car_sales']:,.0f}" if pd.notna(latest['registered_car_sales']) else 'N/A'
         st.metric("Registered (non-K-car)", v)
@@ -744,9 +744,9 @@ def chart_macro_brand(brand_df):
     jp_total = brand_total[brand_total['is_jp']]['sales_count'].sum()
     import_total = brand_total[~brand_total['is_jp']]['sales_count'].sum()
     k1, k2, k3 = st.columns(3)
-    with k1: st.metric("🇯🇵 日本品牌", f"{jp_total:,.0f}", f"{jp_total/total_all*100:.1f}%")
-    with k2: st.metric("🌍 进口品牌", f"{import_total:,.0f}", f"{import_total/total_all*100:.1f}%")
-    with k3: st.metric("📊 品牌数", f"{len(brand_total)}")
+    with k1: st.metric("JP Brands", f"{jp_total:,.0f}", f"{jp_total/total_all*100:.1f}%")
+    with k2: st.metric("Import Brands", f"{import_total:,.0f}", f"{import_total/total_all*100:.1f}%")
+    with k3: st.metric("Total Brands", f"{len(brand_total)}")
 
     st.markdown("---")
 
@@ -900,26 +900,26 @@ def render_data_summary(df_raw):
 
     cols = st.columns(5)
     with cols[0]:
-        st.metric("📦 二手车总量", f"{total_used:,}", f"+{new_listings} 最新批次")
+        st.metric("Used Cars", f"{total_used:,}", f"+{new_listings} latest")
     with cols[1]:
         st.metric("🕐 最新爬取", latest_crawl[0] or "N/A")
     with cols[2]:
-        st.metric("🇯🇵 行业数据", f"{macro_latest[0]}/{macro_latest[1]:02d}" if macro_latest[0] else "N/A")
+        st.metric("JADA Data", f"{macro_latest[0]}/{macro_latest[1]:02d}" if macro_latest[0] else "N/A")
     with cols[3]:
-        st.metric("🏭 新车品牌数", f"{total_brands_macro}")
+        st.metric("Brands", f"{total_brands_macro}")
     with cols[4]:
-        st.metric("🚗 K-car 品牌数", f"{kcar_brand_cnt}")
+        st.metric("K-car Brands", f"{kcar_brand_cnt}")
 
     # Data coverage progress bar
     if crawl_recent:
-        st.caption(f"📋 最近 {len(crawl_recent)} 次爬取: " + " | ".join([f"{d}: {c}辆" for d, c in crawl_recent]))
+        st.caption(f"Last {len(crawl_recent)} crawls: " + " | ".join([f"{d}: {c} cars" for d, c in crawl_recent]))
 
 
 def chart_powertrain(df):
     """Powertrain & Transmission Analysis."""
     price_col = 'price_vehicle'
 
-    tab_a, tab_b = st.tabs(["⛽ 动力类型", "🔧 变速箱"])
+    tab_a, tab_b = st.tabs(["Fuel Type", "Transmission"])
 
     with tab_a:
         # Unify category field
@@ -1091,7 +1091,7 @@ def chart_domestic_vs_import(df):
             color='brand_origin',
             hover_name='brand_clean',
             title="Price vs Mileage: Domestic vs Import",
-            labels={'mileage_wan_km': 'Mileage (万km)', price_col: 'Price (man-yen)'},
+            labels={'mileage_wan_km': 'Mileage (10k km)', price_col: 'Price (man-yen)'},
             color_discrete_map={'Domestic': '#1a73e8', 'Import': '#ea4335'},
             opacity=0.6, height=450,
         )
@@ -1101,7 +1101,7 @@ def chart_domestic_vs_import(df):
     # Displacement distribution comparison
     df_d = df_p[df_p['displacement_cc'].notna() & (df_p['displacement_cc'] > 0)].copy()
     if len(df_d) > 0:
-        st.markdown("#### 📏 排量分布对比")
+        st.markdown("#### Displacement Distribution")
         fig3 = go.Figure()
         fig3.add_trace(go.Violin(
             x=df_d[df_d['brand_origin']=='Domestic']['displacement_cc'],
@@ -1392,11 +1392,74 @@ def chart_import_export():
     export_df = pd.read_sql_query("SELECT * FROM export_statistics", conn)
     import_monthly_df = pd.read_sql_query("SELECT * FROM import_car_monthly", conn)
     new_car_export_df = pd.read_sql_query("SELECT * FROM new_car_export", conn)
-    export_type_df = pd.read_sql_query("SELECT * FROM export_by_type", conn)
+    export_by_type_df = pd.read_sql_query("SELECT * FROM export_by_type", conn)
     import_customs_df = pd.read_sql_query("SELECT * FROM import_customs", conn)
     overseas_annual_df = pd.read_sql_query("SELECT * FROM overseas_production_annual", conn)
 
     conn.close()
+
+    # Translation maps: DB values (mixed CN/JP) -> English display
+    region_map = {
+        # Chinese
+        '\u5317\u7C73': 'North America', '\u6B27\u5DDE': 'Europe', '\u4E9A\u6D32': 'Asia',
+        '\u4E2D\u8FD1\u6771': 'Middle East', '\u5927\u6D0B\u5DDE': 'Oceania',
+        '\u4E2D\u5357\u7C73': 'Central/South America', '\u975E\u6D32': 'Africa',
+        '\u5408\u8BA1': 'Total',
+        # Japanese (quarterly table)
+        '\u30A2\u30B8\u30A2': 'Asia', '\u6B27\u5DDE': 'Europe', '\u5317\u7C73': 'North America',
+        '\u4E2D\u5357\u7C73': 'Central/South America', '\u30A2\u30D5\u30EA\u30AB': 'Africa',
+        '\u5408\u8A08': 'Total', '\u4E2D\u8FD1\u6771': 'Middle East', '\u5927\u6D0B\u5DDE': 'Oceania',
+        '\u4E2D\u5357\u7C73': 'Central/South America',
+        # Other variants
+        'EU': 'Europe', '\u7C73\u56FD': 'USA',
+    }
+    vtype_map = {
+        '\u4E58\u7528\u8F66': 'Passenger Car', '\u5361\u8F66': 'Truck', '\u5DF4\u58EB': 'Bus',
+        '\u5408\u8BA1': 'Total',
+        '\u30C8\u30E9\u30C3\u30AF': 'Truck', '\u30D0\u30B9': 'Bus',
+    }
+    country_map = {
+        # Japanese
+        '\u30C9\u30A4\u30C4': 'Germany', '\u30A2\u30E1\u30EA\u30AB': 'USA',
+        '\u30A4\u30AE\u30EA\u30B9': 'UK', '\u30A4\u30BF\u30EA\u30A2': 'Italy',
+        '\u30D5\u30E9\u30F3\u30B9': 'France', '\u97D3\u56FD': 'South Korea',
+        '\u4E2D\u56FD': 'China', '\u305D\u306E\u4ED6': 'Others', '\u5408\u8BA1': 'Total',
+        # Chinese
+        '\u5FB7\u56FD': 'Germany', '\u97E9\u56FD': 'South Korea', '\u7F8E\u56FD': 'USA',
+        '\u82F1\u56FD': 'UK', '\u610F\u5927\u5229': 'Italy', '\u6CD5\u56FD': 'France',
+        '\u5176\u4ED6': 'Others',
+    }
+
+    # Apply translations to DataFrames
+    if not new_car_export_df.empty:
+        new_car_export_df['region'] = new_car_export_df['region'].map(lambda x: region_map.get(x, x))
+    if not export_by_type_df.empty:
+        export_by_type_df['vehicle_type'] = export_by_type_df['vehicle_type'].map(lambda x: vtype_map.get(x, x))
+    if not overseas_annual_df.empty:
+        overseas_annual_df['region'] = overseas_annual_df['region'].map(lambda x: region_map.get(x, x))
+    if not import_customs_df.empty:
+        import_customs_df['country'] = import_customs_df['country'].map(lambda x: country_map.get(x, x))
+
+    # JAMA facts label translation
+    facts_label_map = {
+        '\u4E58\u7528\u8F66\u65B0\u8F66': 'Passenger (New)', '\u666E\u901A\u8F66\u65B0\u8F66': 'Standard (New)',
+        '\u5C0F\u578B\u8F66\u65B0\u8F66': 'Small (New)', '\u8F7B\u81EA\u52D5\u8F66\u65B0\u8F66': 'Kei (New)',
+        '\u30C8\u30E9\u30C3\u30AF\u65B0\u8F66': 'Truck (New)', '\u30D0\u30B9\u65B0\u8F66': 'Bus (New)',
+        '\u65B0\u8F66\u5408\u8A08': 'Total (New)',
+        '\u8F38\u5165\u4E57\u7528\u8F66': 'Import Passenger', '\u8F38\u5165\u5546\u7528\u8F66': 'Import Commercial',
+        '\u8F38\u5165\u8ECA\u8CA9\u58F2\u5408\u8A08': 'Import Total',
+        '\u8F38\u5165\u4E2D\u53E4\u4E57\u7528\u8F66': 'Import Used Passenger',
+        '\u8F38\u5165\u4E2D\u53E4\u30AB\u30FC\u30C8': 'Import Used Truck',
+        '\u8F38\u5165\u4E2D\u53E4\u8ECA\u5408\u8A08': 'Import Used Total',
+        '\u4E2D\u53E4\u8F66\u5408\u8A08': 'Used Car Total',
+        '\u751F\u7523\u5408\u8A08': 'Production Total', '\u4E57\u7528\u8F66': 'Passenger',
+        '\u666E\u901A\u8F66': 'Standard', '\u5C0F\u578B\u8F66': 'Small', '\u8F7B\u81EA\u52D5\u8F66': 'Kei',
+        '\u30C8\u30E9\u30C3\u30AF': 'Truck', '\u30D0\u30B9': 'Bus',
+        '\u4FDD\u6709\u53F0\u6570\u5408\u8A08': 'Ownership Total',
+        '\u51FA\u53E3\u65B0\u8F66\u5408\u8A08': 'Export Total (New)',
+    }
+    if not facts_df.empty and 'label' in facts_df.columns:
+        facts_df['label'] = facts_df['label'].map(lambda x: facts_label_map.get(x, x))
 
     if facts_df.empty:
         st.warning("No JAMA data available. Run crawl_jama_facts.py first.")
@@ -1412,15 +1475,15 @@ def chart_import_export():
 
     # ====== Tab 1: Export Overview ======
     with ie_tab1:
-        st.markdown("#### \U0001F4CA Export Overview (New + Used)")
+        st.markdown("#### Export Overview (New + Used)")
 
         # --- Chart 1: New Car Export + Used Car Export by year ---
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("**\u65B0\u8ECA\u51FA\u53E3\u53F0\u6570\u63A8\u79FB (JAMA)**")
-            if not export_type_df.empty:
-                et_pivot = export_type_df[export_type_df['vehicle_type'] != '\u5408\u8BA1'].pivot_table(
+            st.markdown("**New Car Export (JAMA)**")
+            if not export_by_type_df.empty:
+                et_pivot = export_by_type_df[export_by_type_df['vehicle_type'] != '\u5408\u8BA1'].pivot_table(
                     index='year', columns='vehicle_type', values='units', aggfunc='sum'
                 ).reset_index()
                 fig = go.Figure()
@@ -1438,7 +1501,7 @@ def chart_import_export():
                 st.plotly_chart(fig, use_container_width=True)
 
         with col2:
-            st.markdown("**\u4E2D\u53E4\u8E66\u51FA\u53E3 (jumv.net)**")
+            st.markdown("**Used Car Export (jumv.net)**")
             if not export_df.empty:
                 latest_month = export_df[export_df['month'] > 0]['month'].max()
                 latest_year = export_df[export_df['month'] > 0]['year'].max()
@@ -1454,14 +1517,58 @@ def chart_import_export():
                         x='shape_name', y='export_count',
                         color='export_count', color_continuous_scale='Sunset',
                         title=f'Used Car Export by Type ({latest_year}-{latest_month:02d})',
-                        labels={'export_count': 'Units', 'shape_name': ''}
+                        labels={'export_count': 'Units', 'shape_name': 'Vehicle Type'}
                     )
                     fig.update_layout(showlegend=False, height=400)
                     st.plotly_chart(fig, use_container_width=True)
 
+        # --- Used Car Export Detail (merged from Export Stats tab) ---
+        st.markdown("---")
+        st.markdown("#### Used Car Export Destinations (jumv.net)")
+        if not export_df.empty:
+            df_monthly_exp = export_df[export_df['month'] > 0].copy() if 'month' in export_df.columns else export_df.copy()
+            df_annual_exp = export_df[export_df['month'] == 0].copy() if 'month' in export_df.columns else pd.DataFrame()
+
+            if not df_monthly_exp.empty and 'country_name' in df_monthly_exp.columns:
+                latest_exp = df_monthly_exp.groupby(['year', 'month'])['export_count'].sum().idxmax()
+                latest_exp_data = df_monthly_exp[(df_monthly_exp['year'] == latest_exp[0]) & (df_monthly_exp['month'] == latest_exp[1])]
+
+                st.markdown(f"**Top Destinations ({latest_exp[0]}-{latest_exp[1]:02d})**")
+                if 'shape_name' in latest_exp_data.columns:
+                    vtypes = latest_exp_data['shape_name'].unique()
+                    if len(vtypes) > 1:
+                        vtabs = st.tabs([str(v) for v in sorted(vtypes)[:6]])
+                        for i, vt in enumerate(sorted(vtypes)[:6]):
+                            with vtabs[i]:
+                                sub = latest_exp_data[latest_exp_data['shape_name'] == vt].nlargest(10, 'export_count')
+                                if not sub.empty:
+                                    fig = px.bar(sub, x='export_count', y='country_name', orientation='h',
+                                                 title=f"{vt} - Top 10 Destinations",
+                                                 color='export_count', color_continuous_scale='Viridis',
+                                                 height=350)
+                                    fig.update_layout(yaxis={'categoryorder': 'total ascending'},
+                                                      xaxis_title="Units", yaxis_title="Country")
+                                    st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        sub = latest_exp_data.nlargest(15, 'export_count')
+                        fig = px.bar(sub, x='export_count', y='country_name', orientation='h',
+                                     color='export_count', color_continuous_scale='Viridis', height=400)
+                        fig.update_layout(yaxis={'categoryorder': 'total ascending'},
+                                          xaxis_title="Units", yaxis_title="Country")
+                        st.plotly_chart(fig, use_container_width=True)
+
+            if not df_annual_exp.empty and 'country_name' in df_annual_exp.columns:
+                st.markdown("**Annual Export Trend - Top 5 Destinations**")
+                top_countries = df_annual_exp.groupby('country_name')['export_count'].sum().nlargest(5).index.tolist()
+                country_trend = df_annual_exp[df_annual_exp['country_name'].isin(top_countries)].groupby(['year', 'country_name'])['export_count'].sum().reset_index()
+                fig = px.line(country_trend, x='year', y='export_count', color='country_name',
+                              title="Annual Export Trend - Top 5 Countries", height=400, markers=True)
+                fig.update_layout(xaxis_title="Year", yaxis_title="Units", legend_title="Country")
+                st.plotly_chart(fig, use_container_width=True)
+
         # --- Chart 2: Destination Region Export Trend ---
         st.markdown("---")
-        st.markdown("#### \u4ED5\u5411\u5730\u5225\u51FA\u53E3\u63A8\u79FB (Destination Region)")
+        st.markdown("#### New Car Export by Destination Region")
         if not new_car_export_df.empty:
             nce_pivot = new_car_export_df[new_car_export_df['region'] != '\u5408\u8BA1'].pivot_table(
                 index='year', columns='region', values='units', aggfunc='sum'
@@ -1499,7 +1606,7 @@ def chart_import_export():
 
         # --- Chart 5: EV Export Trend ---
         st.markdown("---")
-        st.markdown("#### EV / HV \u51FA\u53E3\u8D8B\u52BF (EV Trend)")
+        st.markdown("#### EV / HV Export Trend")
         ev_data = facts_df[facts_df['category'] == 'ev_sales'].copy()
         if not ev_data.empty:
             ev_total = ev_data[ev_data['subcategory'] == 'total']['value'].values
@@ -1527,7 +1634,7 @@ def chart_import_export():
 
         # Export data table
         st.markdown("---")
-        st.markdown("**\u4ED5\u5411\u5730\u5225\u51FA\u53E3\u30C7\u30FC\u30BF**")
+        st.markdown("**Export by Region - Data Table**")
         if not new_car_export_df.empty:
             display_df = new_car_export_df.pivot_table(
                 index='year', columns='region', values='units', aggfunc='sum'
@@ -1536,7 +1643,7 @@ def chart_import_export():
 
     # ====== Tab 2: Import Overview ======
     with ie_tab2:
-        st.markdown("#### \u8FDB\u53E3\u8F66\u54C1\u724C\u522B\u6708\u6B21\u63A8\u79FB (Top10 Brands)")
+        st.markdown("#### Import Car Monthly Top 10 Brands")
 
         # --- Chart 3: Import car monthly Top10 brands trend ---
         if not import_monthly_df.empty:
@@ -1585,7 +1692,7 @@ def chart_import_export():
 
         # --- Chart 4: Import vs Domestic ---
         st.markdown("---")
-        st.markdown("#### \u8FDB\u53E3 vs \u56FD\u4EA7\u5BF9\u6BD4 (Import vs Domestic)")
+        st.markdown("#### Import vs Domestic Comparison")
         imp_sales = facts_df[facts_df['category'] == 'import_sales'].copy()
         imp_used = facts_df[facts_df['category'] == 'import_used'].copy()
 
@@ -1640,7 +1747,7 @@ def chart_import_export():
 
         # Import sales historical
         st.markdown("---")
-        st.markdown("#### \u8F38\u5165\u8ECA\u8CA9\u58F2\u53F0\u6570\u63A8\u79FB (2019-2024)")
+        st.markdown("#### Import Car Sales Trend (2019-2024)")
         col1, col2 = st.columns(2)
         with col1:
             if not imp_sales.empty:
@@ -1674,7 +1781,7 @@ def chart_import_export():
 
         # Customs import by country
         st.markdown("---")
-        st.markdown("#### \u81EA\u52D5\u8ECA\u8F38\u5165\u53F0\u6570 (\u901A\u95A2\u5B9F\u7E3E - by Country)")
+        st.markdown("#### Import by Country (Customs Data)")
         if not import_customs_df.empty:
             ic_pivot = import_customs_df[import_customs_df['country'] != '\u5408\u8BA1'].pivot_table(
                 index='year', columns='country', values='units', aggfunc='sum'
@@ -1696,7 +1803,7 @@ def chart_import_export():
 
     # ====== Tab 3: Overseas Production ======
     with ie_tab3:
-        st.markdown("#### \u6D77\u5916\u751F\u4EA7\u30C7\u30FC\u30BF (Overseas Production)")
+        st.markdown("#### Overseas Production Data")
 
         # --- Chart 6: Overseas production by region (annual) ---
         if not overseas_annual_df.empty:
@@ -1749,7 +1856,9 @@ def chart_import_export():
             with col1:
                 st.markdown("**Q1 Overseas Production**")
                 if not q1_data.empty:
+                    # Use unified region_map defined above
                     q1_display = q1_data[q1_data['region'] != '\u5408\u8A08'].copy()
+                    q1_display['region'] = q1_display['region'].map(lambda x: region_map.get(x, x))
                     fig = px.bar(
                         q1_display,
                         x='region', y='current_value',
@@ -1765,6 +1874,7 @@ def chart_import_export():
                 st.markdown("**Annual Overseas Production**")
                 if not annual_data.empty:
                     annual_display = annual_data[annual_data['region'] != '\u5408\u8A08'].copy()
+                    annual_display['region'] = annual_display['region'].map(lambda x: region_map.get(x, x))
                     fig = px.bar(
                         annual_display,
                         x='region', y='current_value',
@@ -1781,6 +1891,7 @@ def chart_import_export():
                 st.markdown("---")
                 st.markdown("**Year-over-Year Comparison**")
                 q1_compare = q1_data[q1_data['region'].isin(['\u30A2\u30B8\u30A2', '\u6B27\u5DDE', '\u5317\u7C73', '\u4E2D\u5357\u7C73', '\u30A2\u30D5\u30EA\u30AB', '\u5408\u8A08'])].copy()
+                q1_compare['region'] = q1_compare['region'].map(lambda x: region_map.get(x, x))
                 q1_compare = q1_compare.rename(columns={'current_value': '2026 Q1', 'previous_value': '2025 Q1'})
                 if not q1_compare.empty:
                     fig = go.Figure()
@@ -1894,8 +2005,8 @@ def main():
     has_used_car_data = len(df_raw) > 0
 
     if not has_used_car_data:
-        st.warning("⚠️ 二手车数据库为空，部分功能不可用。请运行 `python src/crawler.py` 采集数据，或点击下方按钮刷新。")
-        # 仍然展示宏观数据
+        st.warning("Used car database is empty. Run `python src/crawler.py` to collect data, or click refresh below.")
+        # Show macro data anyway
         summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
         if not summary.empty or not brand_df.empty:
             st.markdown('<div class="section-title">🇯🇵 JADA Sales — New Car Sales</div>', unsafe_allow_html=True)
@@ -1990,13 +2101,12 @@ def main():
     render_data_summary(df_raw)
     st.markdown("<div class='gradient-divider'></div>", unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs([
         "💰 Price", "🏭 Brands", "📊 Scatter",
         "🚙 Vehicle Class", "📈 Year Trend", "🔮 Forecast",
         "🗺️ Region", "🇯🇵 JADA Sales",
         "⚡ Powertrain", "🆚 Domestic vs Import",
-        "🚢 Export Stats", "📋 Market Report",
-        "🌐 Import & Export"
+        "📋 Market Report", "🌐 Import & Export"
     ])
 
     with tab1:
@@ -2051,14 +2161,10 @@ def main():
         chart_domestic_vs_import(df)
 
     with tab11:
-        st.markdown('<div class="section-title">Japan Used Car Export Statistics</div>', unsafe_allow_html=True)
-        chart_export_statistics()
-
-    with tab12:
         st.markdown('<div class="section-title">Monthly Market Report — Registration & Rankings</div>', unsafe_allow_html=True)
         chart_market_report()
 
-    with tab13:
+    with tab12:
         st.markdown('<div class="section-title">Japan Auto Market — Import & Export Overview</div>', unsafe_allow_html=True)
         chart_import_export()
 
@@ -2066,7 +2172,7 @@ def main():
     <div class="gradient-divider"></div>
     <div style="text-align:center; color:#5f6368; font-size:0.85em; padding:12px 0;">
         🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net + JADA + Zenkeijikyo + jumv.net + Kurumaerabi + JAMA + JAIA · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit<br>
-        📦 13 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · JADA Sales · Powertrain · Domestic vs Import · Export Stats · Market Report · Import & Export
+        📦 12 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · JADA Sales · Powertrain · Domestic vs Import · Market Report · Import & Export
     </div>
     """, unsafe_allow_html=True)
 
