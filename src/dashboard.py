@@ -904,7 +904,7 @@ def render_data_summary(df_raw):
     with cols[1]:
         st.metric("🕐 最新爬取", latest_crawl[0] or "N/A")
     with cols[2]:
-        st.metric("🇯🇵 宏观数据", f"{macro_latest[0]}/{macro_latest[1]:02d}" if macro_latest[0] else "N/A")
+        st.metric("🇯🇵 行业数据", f"{macro_latest[0]}/{macro_latest[1]:02d}" if macro_latest[0] else "N/A")
     with cols[3]:
         st.metric("🏭 新车品牌数", f"{total_brands_macro}")
     with cols[4]:
@@ -1898,7 +1898,7 @@ def main():
         # 仍然展示宏观数据
         summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
         if not summary.empty or not brand_df.empty:
-            st.markdown('<div class="section-title">🇯🇵 Japan Macro Market — New Car Sales</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">🇯🇵 行业销量统计 — New Car Sales</div>', unsafe_allow_html=True)
             st.caption("Data: JADA (Brand Registration) + Zenkeijikyo (K-car) · Updated monthly")
             macro_tab1, macro_tab2, macro_tab3 = st.tabs([
                 "📈 Monthly Total", "🏭 Brand Ranking", "🚗 K-car"
@@ -1993,7 +1993,7 @@ def main():
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13 = st.tabs([
         "💰 Price", "🏭 Brands", "📊 Scatter",
         "🚙 Vehicle Class", "📈 Year Trend", "🔮 Forecast",
-        "🗺️ Region", "🇯🇵 Macro Market",
+        "🗺️ Region", "🇯🇵 行业销量统计",
         "⚡ Powertrain", "🆚 Domestic vs Import",
         "🚢 Export Stats", "📋 Market Report",
         "🌐 Import & Export"
@@ -2028,7 +2028,7 @@ def main():
         chart_prefecture(df)
 
     with tab8:
-        st.markdown('<div class="section-title">🇯🇵 Japan Macro Market — New Car Sales</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">🇯🇵 行业销量统计 — New Car Sales</div>', unsafe_allow_html=True)
         st.caption("Data: JADA (Brand Registration) + Zenkeijikyo (K-car) · Updated monthly")
         summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
 
@@ -2066,7 +2066,7 @@ def main():
     <div class="gradient-divider"></div>
     <div style="text-align:center; color:#5f6368; font-size:0.85em; padding:12px 0;">
         🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net + JADA + Zenkeijikyo + jumv.net + Kurumaerabi + JAMA + JAIA · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit<br>
-        📦 13 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · Macro Market · Powertrain · Domestic vs Import · Export Stats · Market Report · Import & Export
+        📦 13 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · 行业销量统计 · Powertrain · Domestic vs Import · Export Stats · Market Report · Import & Export
     </div>
     """, unsafe_allow_html=True)
 
