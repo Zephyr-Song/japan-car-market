@@ -1898,7 +1898,7 @@ def main():
         # 仍然展示宏观数据
         summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
         if not summary.empty or not brand_df.empty:
-            st.markdown('<div class="section-title">🇯🇵 行业销量统计 — New Car Sales</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">🇯🇵 JADA Sales — New Car Sales</div>', unsafe_allow_html=True)
             st.caption("Data: JADA (Brand Registration) + Zenkeijikyo (K-car) · Updated monthly")
             macro_tab1, macro_tab2, macro_tab3 = st.tabs([
                 "📈 Monthly Total", "🏭 Brand Ranking", "🚗 K-car"
@@ -1993,7 +1993,7 @@ def main():
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13 = st.tabs([
         "💰 Price", "🏭 Brands", "📊 Scatter",
         "🚙 Vehicle Class", "📈 Year Trend", "🔮 Forecast",
-        "🗺️ Region", "🇯🇵 行业销量统计",
+        "🗺️ Region", "🇯🇵 JADA Sales",
         "⚡ Powertrain", "🆚 Domestic vs Import",
         "🚢 Export Stats", "📋 Market Report",
         "🌐 Import & Export"
@@ -2028,7 +2028,7 @@ def main():
         chart_prefecture(df)
 
     with tab8:
-        st.markdown('<div class="section-title">🇯🇵 行业销量统计 — New Car Sales</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">🇯🇵 JADA Sales — New Car Sales</div>', unsafe_allow_html=True)
         st.caption("Data: JADA (Brand Registration) + Zenkeijikyo (K-car) · Updated monthly")
         summary, brand_df, kcar_brand_df, kcar_monthly_df = load_macro_data()
 
@@ -2066,7 +2066,7 @@ def main():
     <div class="gradient-divider"></div>
     <div style="text-align:center; color:#5f6368; font-size:0.85em; padding:12px 0;">
         🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net + JADA + Zenkeijikyo + jumv.net + Kurumaerabi + JAMA + JAIA · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit<br>
-        📦 13 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · 行业销量统计 · Powertrain · Domestic vs Import · Export Stats · Market Report · Import & Export
+        📦 13 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · JADA Sales · Powertrain · Domestic vs Import · Export Stats · Market Report · Import & Export
     </div>
     """, unsafe_allow_html=True)
 
