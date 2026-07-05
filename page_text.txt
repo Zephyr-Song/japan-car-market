@@ -1,0 +1,286 @@
+Deploy
+🔍 Filters
+
+🕐 Last data refresh: 2026-06-28 19:16:25
+
+🔄 Refresh Data Now
+
+Price Range (man-yen)
+
+12.20
+3748.00
+12.20
+3748.00
+
+Model Year Range
+
+2005
+2026
+2005
+2026
+
+Brand Origin
+
+Domestic
+Import
+
+Vehicle Class
+
+Compact (<=1500cc)
+K-car (<=660cc)
+Large (2001-3000cc)
+Luxury (3001cc+)
+Mid-size (1501-2000cc)
+
+Showing 1,113 / 1,113 vehicles
+
+🔄 Reset Filters
+
+🇯🇵 Japan Used Car Market Analytics LIVE
+
+Dynamic monitoring of car prices · Brand distribution · Market trends · Source: carsensor.net
+
+🚗
+
+1,113
+
+Vehicles Listed
+
+💰
+
+188.6
+
+Avg Price (man-yen)
+
+🏭
+
+26
+
+Brands
+
+🇯🇵
+
+32.3%
+
+K-car Share
+
+Used Cars
+
+1,113
++27 latest
+
+🕐 最新爬取
+
+2026-06-28
+
+JADA Data
+
+2026/12
+
+Brands
+
+54
+
+K-car Brands
+
+8
+
+Last 5 crawls: 2026-06-28: 27 cars | 2026-06-27: 56 cars | 2026-06-26: 25 cars | 2026-06-25: 22 cars | 2026-06-24: 15 cars
+
+💰 Price
+
+🏭 Brands
+
+📊 Scatter
+
+🚙 Vehicle Class
+
+📈 Year Trend
+
+🔮 Forecast
+
+🗺️ Region
+
+🇯🇵 JADA Sales
+
+⚡ Powertrain
+
+🆚 Domestic vs Import
+
+📋 Market Report
+
+🌐 Import & Export
+
+Japan Auto Market — Import & Export Overview
+
+🚢 Export Overview
+
+📥 Import Overview
+
+🌐 Overseas Production
+
+🏭 Production & Sales
+
+Export Overview (New + Used)
+
+New Car Export (JAMA)
+
+2020
+2022
+2024
+0
+2M
+4M
+6M
+8M
+Truck
+Total
+Passenger Car
+Bus
+New Car Export by Vehicle Type (2019-2024)
+Year
+Units
+
+Used Car Export (jumv.net)
+
+Standard Car
+Hybrid
+Truck
+Kei Car
+EV
+Bus
+0
+10k
+20k
+30k
+40k
+10k
+20k
+30k
+40k
+Units
+Used Car Export by Type (2026-05)
+Vehicle Type
+Units
+Used Car Export Destinations (jumv.net)
+
+Top Destinations (2026-05)
+
+Bus
+
+EV
+
+Hybrid
+
+Kei Car
+
+Standard Car
+
+Truck
+
+0
+50
+100
+150
+200
+Zambia
+Guyana
+South Africa
+Chile
+Tanzania
+100
+150
+200
+export_count
+Bus - Top 10 Destinations
+Units
+Country
+
+Annual Export Trend - Top 5 Destinations
+
+2023
+2,023.5
+2024
+2,024.5
+2025
+2,025.5
+2026
+50k
+100k
+150k
+200k
+250k
+Country
+Mongolia
+New Zealand
+Russia
+Tanzania
+UAE
+Annual Export Trend - Top 5 Countries
+Year
+Units
+New Car Export by Destination Region
+2020
+2022
+2024
+0
+2M
+4M
+6M
+8M
+北美
+中近东
+中南美
+Total
+Oceania
+Europe
+Asia
+Africa
+Export by Region (Stacked Bar)
+Year
+Units
+2019
+2020
+2021
+2022
+2023
+2024
+0
+1M
+2M
+3M
+4M
+Africa
+Asia
+Europe
+Oceania
+Total
+中南美
+中近东
+北美
+Export by Region (Trend Lines)
+Year
+Units
+EV / HV Export Trend
+
+EV Sales 2025
+
+60,677
+
+EV Market Share
+
+1.6%
+
+BYD Sales
+
+3,870
+98.4%
+1.58%
+Non-EV
+EV
+EV vs Non-EV in Passenger Car Sales (2025)
+
+Export by Region - Data Table
+
+🇯🇵 Japan Used Car Market Analytics · Source: carsensor.net + JADA + Zenkeijikyo + jumv.net + Kurumaerabi + JAMA + JAIA · Stack: Playwright + Pandas + SQLite + Prophet + Streamlit
+📦 12 Tabs: Price · Brands · Scatter · Vehicle Class · Year Trend · Forecast · Region · JADA Sales · Powertrain · Domestic vs Import · Market Report · Import & Export

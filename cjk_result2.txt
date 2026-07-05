@@ -1,0 +1,9 @@
+CJK groups found: 1
+  最新爬取
+  'North America' in text: True
+  'Middle East' in text: True
+  'Central/South America' in text: True
+  '北美' in text: False
+  '中近东' in text: False
+  '中南美' in text: False
+  '最新爬取' in text: True

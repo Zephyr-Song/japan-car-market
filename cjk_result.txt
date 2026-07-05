@@ -1,0 +1,25 @@
+CJK groups found: 7
+  最新爬取
+  北美
+  中近东
+  中南美
+  中南美
+  中近东
+  北美
+
+'New Car Export' in text: True
+  'North America' in text: False
+  'Europe' in text: True
+  'Asia' in text: True
+  'Middle East' in text: False
+  'Oceania' in text: True
+  'Central/South America' in text: False
+  'Africa' in text: True
+  '北美' in text: True
+  '中近东' in text: True
+  '中南美' in text: True
+  '欧州' in text: False
+  '非洲' in text: False
+  '亚洲' in text: False
+  '合计' in text: False
+  '最新爬取' in text: True

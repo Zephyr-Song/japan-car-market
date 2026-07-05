@@ -1,0 +1,16 @@
+Tab count: 15
+  Tab 0: 💰 Price
+  Tab 1: 🏭 Brands
+  Tab 2: 📊 Scatter
+  Tab 3: 🚙 Vehicle Class
+  Tab 4: 📈 Year Trend
+  Tab 5: 🔮 Forecast
+  Tab 6: 🗺️ Region
+  Tab 7: 🇯🇵 JADA Sales
+  Tab 8: ⚡ Powertrain
+  Tab 9: 🆚 Domestic vs Import
+  Tab 10: 📋 Market Report
+  Tab 11: 🌐 Import & Export
+  Tab 12: 📈 Price Range by Brand
+  Tab 13: 🥧 Market Share
+  Tab 14: 🎬 Brand Race

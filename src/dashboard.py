@@ -902,7 +902,7 @@ def render_data_summary(df_raw):
     with cols[0]:
         st.metric("Used Cars", f"{total_used:,}", f"+{new_listings} latest")
     with cols[1]:
-        st.metric("🕐 最新爬取", latest_crawl[0] or "N/A")
+        st.metric("Last Crawl", latest_crawl[0] or "N/A")
     with cols[2]:
         st.metric("JADA Data", f"{macro_latest[0]}/{macro_latest[1]:02d}" if macro_latest[0] else "N/A")
     with cols[3]:
@@ -1406,18 +1406,17 @@ def chart_import_export():
 
     # Translation maps: DB values (mixed CN/JP) -> English display
     region_map = {
-        # Chinese
-        '北米': 'North America', '欧州': 'Europe', '亚洲': 'Asia',
-        '中近東': 'Middle East', '大洋州': 'Oceania',
-        '中南米': 'Central/South America', '非洲': 'Africa',
+        # Chinese variants (used in new_car_export, overseas_production_annual)
+        '北美': 'North America', '欧州': 'Europe', '亚洲': 'Asia',
+        '中近东': 'Middle East', '大洋州': 'Oceania',
+        '中南美': 'Central/South America', '非洲': 'Africa',
         '合计': 'Total',
-        # Japanese (quarterly table)
-        'アジア': 'Asia', '欧州': 'Europe', '北米': 'North America',
-        '中南米': 'Central/South America', 'アフリカ': 'Africa',
-        '合計': 'Total', '中近東': 'Middle East', '大洋州': 'Oceania',
-        '中南米': 'Central/South America',
-        # Other variants
-        'EU': 'Europe', '米国': 'USA',
+        # Japanese variants (used in jama_overseas_production quarterly)
+        '北米': 'North America', '中南米': 'Central/South America',
+        '中近東': 'Middle East', 'アジア': 'Asia', 'アフリカ': 'Africa',
+        '合計': 'Total', '米国': 'USA',
+        # Other
+        'EU': 'Europe',
     }
     vtype_map = {
         '乘用车': 'Passenger Car', '卡车': 'Truck', '巴士': 'Bus',
