@@ -1,5 +1,38 @@
-# .gitignore - 临时调试文件
-*.png
+# .gitignore - Japan Car Market
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary debug files
 *_debug*
 debug_*
 check_*
@@ -17,6 +50,6 @@ check_db.py
 check_db_simple.py
 check_detail.py
 check_health.py
-2020
-启动仪表盘.bat
+
+# Misc
 run_dashboard.bat

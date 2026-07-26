@@ -43,11 +43,13 @@
 
 ## 🗂️ 项目结构
 
-```
+```text
 japan-car-market/
 ├── README.md                          ← 你在这里
-├── requirements.txt                   ← Python 依赖
+├── requirements.txt                   ← Python 依赖（版本锁定）
 ├── .gitignore
+├── LICENSE                            ← MIT License
+├── CHANGELOG.md                       ← 版本变更记录
 │
 ├── data/
 │   ├── japan_car_market.db            ← SQLite 主数据库（~4MB）
@@ -65,15 +67,33 @@ japan-car-market/
 │       ├── 06_brand_market_share.png
 │       └── 07_dashboard_overview.png
 │
+├── docs/                             ← 研究文档与更新记录
+│
+├── reports/                          ← 市场分析报告
+│
 └── src/
     ├── crawler.py                     ← Playwright 爬虫（carsensor.net）
-    ├── process.py                    ← 数据清洗（JIS 日车牌号/年号转换）
-    ├── macro_data_crawler.py         ← 宏观数据采集（JADA / 全軽自協）
-    ├── analyze.py                    ← 静态可视化（7 张图表）
-    ├── forecast.py                   ← Prophet 时间序列预测
-    ├── dashboard.py                  ← Streamlit 交互仪表盘
-    ├── refresh_data.py               ← 数据刷新入口（cron 调度）
-    └── quality_report.py             ← 数据质量报告
+    ├── crawler_goonet.py              ← goo-net 爬虫
+    ├── crawler_official.py            ← 官方数据爬虫
+    ├── crawl_customs.py               ← 海关进出口数据
+    ├── crawl_import_monthly.py        ← 月度进口数据
+    ├── crawl_jama.py                  ← JAMA 数据采集
+    ├── crawl_jama_facts.py            ← JAMA Facts 数据
+    ├── crawl_jumv.py                  ← JUMV 数据采集
+    ├── crawl_kurumaerabi.py           ← kurumaerabi 爬虫
+    ├── crawl_kurumaerabi_v2.py        ← kurumaerabi 爬虫 v2
+    ├── macro_data_crawler.py          ← 宏观数据采集（JADA / 全軽自協）
+    ├── update_crawler.py              ← 爬虫更新模块
+    ├── process.py                     ← 数据清洗（JIS 日车牌号/年号转换）
+    ├── analyze.py                     ← 静态可视化（7 张图表）
+    ├── forecast.py                    ← Prophet 时间序列预测
+    ├── dashboard.py                   ← Streamlit 交互仪表盘
+    ├── dashboard_nicegui.py           ← NiceGUI 版仪表盘
+    ├── refresh_data.py                ← 数据刷新入口（cron 调度）
+    ├── quality_report.py              ← 数据质量报告
+    ├── logistics.py                   ← 海运物流分析模块
+    └── scripts/
+        └── oneoff/                    ← 一次性调试/验证/修复脚本
 ```
 
 ---
